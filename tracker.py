@@ -2,9 +2,12 @@ import httpx
 import sqlite3
 from datetime import datetime
 import asyncio
+from fastapi import FastAPI
 
 DB_NAME = "metrics.db"
 CLIENT_LIST = "clients.txt"
+
+app = FastAPI()
 
 def init_db():
     conn = sqlite3.connect(DB_NAME)
@@ -61,8 +64,9 @@ async def track_loop():
         except Exception as e:
             print(f"[Tracker Error] {e}")
 
-        await asyncio.sleep(600)  # 10 minutes
+        await asyncio.sleep(600)  # 10 min
 
-if __name__ == "__main__":
+@app.on_event("startup")
+async def start_tracking():
     init_db()
-    asyncio.run(track_loop())
+    asyncio.create_task(track_loop())
