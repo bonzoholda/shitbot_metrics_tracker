@@ -1,17 +1,18 @@
+import os
 import httpx
 import sqlite3
-import os
 from datetime import datetime
 import asyncio
 from fastapi import FastAPI
 
-# ✅ Use shared SQLite file path from Railway env var
-DB_PATH = os.getenv("DATABASE_PATH", "metrics.db")
+DB_PATH = os.getenv("DATABASE_PATH", "/data/metrics.db")
 CLIENT_LIST = "clients.txt"
 
 app = FastAPI()
 
 def get_connection():
+    # Ensure parent directory exists
+    os.makedirs(os.path.dirname(DB_PATH), exist_ok=True)
     return sqlite3.connect(DB_PATH)
 
 def init_db():
@@ -30,6 +31,24 @@ def init_db():
     conn.commit()
     conn.close()
 
+async def fetch_stats(url: str):
+    try:
+        async with httpx.AsyncClient(timeout=10) as client:
+            res = await client.get(f"{url}/api/signal")
+            if res.status_code == 200:
+                data = res.json()
+                log_to_db({
+                    "wallet": data["account_wallet"],
+                    "portfolio_value": data["portfolio_value"],
+                    "usdt_balance": data["usdt_balance"],
+                    "wmatic_balance": data["wmatic_balance"]
+                })
+                print(f"[{url}] Logged: {data['portfolio_value']} USDT")
+            else:
+                print(f"[{url}] Error: {res.status_code}")
+    except Exception as e:
+        print(f"[{url}] Failed: {e}")
+
 def log_to_db(data):
     conn = get_connection()
     c = conn.cursor()
@@ -46,26 +65,6 @@ def log_to_db(data):
     conn.commit()
     conn.close()
 
-async def fetch_stats(url: str):
-    try:
-        async with httpx.AsyncClient(timeout=10) as client:
-            res = await client.get(f"{url}/api/signal")
-            if res.status_code == 200:
-                data = res.json()
-
-                log_to_db({
-                    "wallet": data["account_wallet"],
-                    "portfolio_value": data["portfolio_value"],
-                    "usdt_balance": data["usdt_balance"],
-                    "wmatic_balance": data["wmatic_balance"]
-                })
-
-                print(f"[{url}] Logged: {data['portfolio_value']} USDT")
-            else:
-                print(f"[{url}] Error: {res.status_code}")
-    except Exception as e:
-        print(f"[{url}] Failed: {e}")
-
 async def track_loop():
     while True:
         try:
@@ -75,8 +74,7 @@ async def track_loop():
             await asyncio.gather(*tasks)
         except Exception as e:
             print(f"[Tracker Error] {e}")
-
-        await asyncio.sleep(60)  # every minute
+        await asyncio.sleep(60)
 
 @app.on_event("startup")
 async def start_tracking():
