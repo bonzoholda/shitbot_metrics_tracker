@@ -43,7 +43,7 @@
           return;
         }
 
-        const labels = data.map(d => new Date(d.timestamp).toLocaleDateString());
+        const labels = data.map(d => new Date(d.timestamp).toISOString());
         const values = data.map(d => d.value);
         const roi = (((values.at(-1) - baseline) / baseline) * 100).toFixed(2);
 
