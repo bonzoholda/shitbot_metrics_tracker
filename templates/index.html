@@ -6,7 +6,7 @@
   <title>ShitBot Tracker</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@1.1.0"></script>
-  <link href="https://cdn.tailwindcss.com" rel="stylesheet"/>
+  <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-zinc-900 text-white p-6">
   <div class="max-w-3xl mx-auto text-center">
@@ -25,14 +25,10 @@
   <script>
     let chartInstance;
 
-    // This function fetches portfolio data and renders the chart
     async function fetchAndDraw(wallet) {
       try {
-        // Fetch portfolio data from the API
         const res = await fetch(`/api/user/${wallet}`);
-        if (!res.ok) {
-          throw new Error(`Failed to fetch data. Status: ${res.status}`);
-        }
+        if (!res.ok) throw new Error(`Failed to fetch data. Status: ${res.status}`);
 
         const json = await res.json();
         const data = json.data;
@@ -43,14 +39,15 @@
           return;
         }
 
-        const labels = data.map(d => new Date(d.timestamp).toISOString());
+        const labels = data.map(d => new Date(d.timestamp).toLocaleTimeString());
         const values = data.map(d => d.value);
-        const roi = (((values.at(-1) - baseline) / baseline) * 100).toFixed(2);
+        const lastIndex = values.length - 1;
+        const roi = (((values[lastIndex] - baseline) / baseline) * 100).toFixed(2);
 
-        // Destroy the old chart instance before creating a new one
+        document.getElementById('chartContainer').classList.remove('hidden'); // show early
+
         if (chartInstance) chartInstance.destroy();
 
-        // Create a new chart with the fetched data
         const ctx = document.getElementById('portfolioChart').getContext('2d');
         chartInstance = new Chart(ctx, {
           type: 'line',
@@ -74,8 +71,8 @@
                   roiLabel: {
                     type: 'label',
                     content: [`ROI: ${roi}%`],
-                    xValue: labels.at(-1),
-                    yValue: values.at(-1),
+                    xValue: labels[lastIndex],
+                    yValue: values[lastIndex],
                     backgroundColor: 'rgba(255,255,255,0.05)',
                     color: '#ccc',
                     font: { weight: 'bold' },
@@ -91,15 +88,12 @@
           }
         });
 
-        // Show the chart container after it's populated with data
-        document.getElementById('chartContainer').classList.remove('hidden');
       } catch (error) {
         console.error("Error fetching portfolio data:", error);
         alert("Failed to load portfolio data. Please try again.");
       }
     }
 
-    // Handle form submission
     document.getElementById('walletForm').addEventListener('submit', (e) => {
       e.preventDefault();
       const wallet = document.getElementById('wallet').value.trim();
