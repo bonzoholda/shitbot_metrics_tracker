@@ -72,17 +72,21 @@
       yaxis: {
         labels: { style: { colors: '#aaa' } }
       },
+      dataLabels: {
+        enabled: false // 🚫 disables label on every point
+      },
       annotations: {
         points: [
           {
-            x: data.at(-1).x,
+            x: data.at(-1).x.getTime(), // ApexCharts expects timestamp in ms
             y: data.at(-1).y,
             marker: { size: 6, fillColor: '#00FF85' },
             label: {
               borderColor: '#00FF85',
               style: {
                 background: '#00FF85',
-                color: '#000'
+                color: '#000',
+                fontWeight: 'bold'
               },
               text: `Change: ${pctChange}%`
             }
