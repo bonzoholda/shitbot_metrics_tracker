@@ -44,104 +44,102 @@
   <script>
     let chartInstance;
 
-    async function fetchAndDraw(wallet) {
-      try {
-        const res = await fetch(`/api/user/${wallet}`);
-        if (!res.ok) throw new Error(`Status ${res.status}`);
-
-        const { data } = await res.json();
-
-        if (!data || data.length < 2) {
-          alert("Not enough data.");
-          return;
-        }
-
-        const seriesData = data.map(d => ({
-          x: new Date(d.timestamp),
-          y: d.value
-        }));
-
-        const firstY = seriesData[0].y;
-        const lastY = seriesData.at(-1).y;
-        const changePct = (((lastY - firstY) / firstY) * 100).toFixed(2);
-        const labelText = `${changePct >= 0 ? '+' : ''}${changePct}%`;
-
-        if (chartInstance) chartInstance.destroy();
-
-        chartInstance = new ApexCharts(document.querySelector("#chart"), {
-          chart: {
-            type: 'area',
-            height: 320,
-            foreColor: '#ccc',
-            background: 'transparent',
-            toolbar: { show: false }
-          },
-          series: [{
-            name: 'Portfolio Value (USDT)',
-            data: seriesData
-          }],
-          xaxis: {
-            type: 'datetime',
-            labels: { style: { colors: '#aaa' } }
-          },
-          yaxis: {
-            labels: { style: { colors: '#aaa' } }
-          },
-          tooltip: {
-            x: { format: 'dd MMM HH:mm' }
-          },
-          annotations: {
-            points: [
-              {
-                x: seriesData.at(-1).x,
-                y: lastY,
-                marker: {
-                  size: 6,
-                  fillColor: '#00FF85',
-                  strokeColor: '#00FF85'
-                },
-                label: {
-                  borderColor: '#00FF85',
-                  style: {
-                    background: '#00FF85',
-                    color: '#000',
-                    fontWeight: 600
-                  },
-                  text: `Change: ${labelText}`,
-                  offsetY: -10
-                }
-              }
-            ]
-          },
-          fill: {
-            type: 'gradient',
-            gradient: {
-              shade: 'dark',
-              gradientToColors: ['#00FF85'],
-              shadeIntensity: 1,
-              type: 'vertical',
-              opacityFrom: 0.5,
-              opacityTo: 0.1,
-              stops: [0, 100]
-            }
-          },
-          colors: ['#00FF85']
-        });
-
-        document.getElementById('chartContainer').classList.remove('hidden');
-        chartInstance.render();
-
-      } catch (err) {
-        console.error(err);
-        alert("Failed to load chart.");
+      async function fetchAndDraw(wallet) {
+    try {
+      const res = await fetch(`/api/user/${wallet}`);
+      console.log('🔵 API Response status:', res.status);
+      const json = await res.json();
+      console.log('🟢 Full JSON:', json);
+  
+      const { data } = json;
+      if (!data || data.length < 2) {
+        console.warn('⚠️ Not enough data');
+        return;
       }
+  
+      const seriesData = data.map(d => ({
+        x: new Date(d.timestamp),
+        y: d.value
+      }));
+  
+      const firstY = seriesData[0].y;
+      const lastY = seriesData.at(-1).y;
+      const changePct = (((lastY - firstY) / firstY) * 100).toFixed(2);
+      const labelText = `${changePct >= 0 ? '+' : ''}${changePct}%`;
+  
+      console.log('📊 Series Data:', seriesData);
+      console.log(`📈 First Y: ${firstY}, Last Y: ${lastY}, % Change: ${labelText}`);
+  
+      if (chartInstance) chartInstance.destroy();
+  
+      chartInstance = new ApexCharts(document.querySelector("#chart"), {
+        chart: {
+          type: 'area',
+          height: 320,
+          foreColor: '#ccc',
+          background: 'transparent',
+          toolbar: { show: false }
+        },
+        series: [{
+          name: 'Portfolio Value (USDT)',
+          data: seriesData
+        }],
+        xaxis: {
+          type: 'datetime',
+          labels: { style: { colors: '#aaa' } }
+        },
+        yaxis: {
+          labels: { style: { colors: '#aaa' } }
+        },
+        tooltip: {
+          x: { format: 'dd MMM HH:mm' }
+        },
+        annotations: {
+          points: [
+            {
+              x: seriesData.at(-1).x,
+              y: lastY,
+              marker: {
+                size: 6,
+                fillColor: '#00FF85',
+                strokeColor: '#00FF85'
+              },
+              label: {
+                borderColor: '#00FF85',
+                style: {
+                  background: '#00FF85',
+                  color: '#000',
+                  fontWeight: 600
+                },
+                text: `Change: ${labelText}`,
+                offsetY: -10
+              }
+            }
+          ]
+        },
+        fill: {
+          type: 'gradient',
+          gradient: {
+            shade: 'dark',
+            gradientToColors: ['#00FF85'],
+            shadeIntensity: 1,
+            type: 'vertical',
+            opacityFrom: 0.5,
+            opacityTo: 0.1,
+            stops: [0, 100]
+          }
+        },
+        colors: ['#00FF85']
+      });
+  
+      document.getElementById('chartContainer').classList.remove('hidden');
+      chartInstance.render();
+  
+    } catch (err) {
+      console.error('❌ Fetch error:', err);
     }
+  }
 
-    document.getElementById('walletForm').addEventListener('submit', (e) => {
-      e.preventDefault();
-      const wallet = document.getElementById('wallet').value.trim();
-      if (wallet) fetchAndDraw(wallet);
-    });
   </script>
 </body>
 </html>
