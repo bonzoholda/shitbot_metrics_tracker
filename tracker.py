@@ -31,20 +31,23 @@ async def fetch_stats(url: str):
             res = await client.get(f"{url}/api/signal")
             if res.status_code == 200:
                 data = res.json()
+
                 log_to_db({
                     "wallet": data["account_wallet"],
                     "portfolio_value": data["portfolio_value"],
                     "usdt_balance": data["usdt_balance"],
                     "wmatic_balance": data["wmatic_balance"]
                 })
-                print(f"[{url}] Logged: {data['portfolio_value']}")
+
+                print(f"[{url}] Logged: {data['portfolio_value']} USDT")
             else:
                 print(f"[{url}] Error: {res.status_code}")
     except Exception as e:
         print(f"[{url}] Failed: {e}")
 
 def log_to_db(data):
-    conn = sqlite3.connect(DB_NAME)
+    from datetime import datetime
+    conn = sqlite3.connect("metrics.db")
     c = conn.cursor()
     c.execute("""
         INSERT INTO portfolio_log (wallet, timestamp, portfolio_value, usdt_balance, wmatic_balance)
@@ -58,6 +61,7 @@ def log_to_db(data):
     ))
     conn.commit()
     conn.close()
+
 
 async def track_loop():
     while True:
