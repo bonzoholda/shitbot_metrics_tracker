@@ -37,12 +37,14 @@ async def fetch_stats(url: str):
             res = await client.get(f"{url}/api/signal")
             if res.status_code == 200:
                 data = res.json()
+
                 log_to_db({
-                    "wallet": data["account_wallet"],
-                    "portfolio_value": data["portfolio_value"],
-                    "usdt_balance": data["usdt_balance"],
-                    "wmatic_balance": data["wmatic_balance"]
+                    "wallet": data.get("account_wallet"),
+                    "portfolio_value": data.get("portfolio_value"),
+                    "usdt_balance": data.get("usdt_balance"),
+                    "wmatic_balance": data.get("wmatic_balance")
                 })
+
                 print(f"[{url}] Logged: {data['portfolio_value']} USDT")
             else:
                 print(f"[{url}] Error: {res.status_code}")
@@ -50,20 +52,25 @@ async def fetch_stats(url: str):
         print(f"[{url}] Failed: {e}")
 
 def log_to_db(data):
-    conn = get_connection()
-    c = conn.cursor()
-    c.execute("""
-        INSERT INTO portfolio_log (wallet, timestamp, portfolio_value, usdt_balance, wmatic_balance)
-        VALUES (?, ?, ?, ?, ?)
-    """, (
-        data['wallet'],
-        datetime.utcnow().isoformat(),
-        data['portfolio_value'],
-        data['usdt_balance'],
-        data['wmatic_balance']
-    ))
-    conn.commit()
-    conn.close()
+    from datetime import datetime
+    try:
+        conn = sqlite3.connect("metrics.db")
+        c = conn.cursor()
+        c.execute("""
+            INSERT INTO portfolio_log (wallet, timestamp, portfolio_value, usdt_balance, wmatic_balance)
+            VALUES (?, ?, ?, ?, ?)
+        """, (
+            data['wallet'],
+            datetime.utcnow().isoformat(),
+            data['portfolio_value'],
+            data['usdt_balance'],
+            data['wmatic_balance']
+        ))
+        conn.commit()
+        conn.close()
+    except Exception as e:
+        print(f"[DB Error] Failed to insert data: {e}")
+
 
 async def track_loop():
     while True:
