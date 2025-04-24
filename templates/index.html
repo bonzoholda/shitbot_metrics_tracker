@@ -4,12 +4,8 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>ShitBot Tracker</title>
-  <!-- Chart.js -->
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <!-- Chart.js Annotation Plugin -->
-  <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@1.1.0"></script>
-  <!-- Tailwind CSS -->
-  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+  <link href="https://cdn.tailwindcss.com" rel="stylesheet"/>
 </head>
 <body class="bg-zinc-900 text-white p-6">
   <div class="max-w-3xl mx-auto text-center">
@@ -20,15 +16,12 @@
       <button type="submit" class="mt-2 bg-green-500 text-black px-4 py-2 rounded">View Portfolio</button>
     </form>
 
-    <div class="bg-zinc-800 rounded-lg p-4 hidden" id="chartContainer">
-      <canvas id="portfolioChart" class="w-full h-64"></canvas>
+    <div id="chartContainer" class="bg-zinc-800 rounded-lg p-4 hidden">
+      <div id="chart" class="w-full h-64"></div>
     </div>
   </div>
 
   <script>
-    // Register the annotation plugin
-    Chart.register(window['chartjs-plugin-annotation']);
-
     let chartInstance;
 
     async function fetchAndDraw(wallet) {
@@ -45,57 +38,84 @@
           return;
         }
 
-        const labels = data.map(d => new Date(d.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
-        const values = data.map(d => d.value);
-        const roi = (((values.at(-1) - baseline) / baseline) * 100).toFixed(2);
+        const seriesData = data.map(d => ({
+          x: new Date(d.timestamp),
+          y: d.value
+        }));
 
+        const roi = (((seriesData.at(-1).y - baseline) / baseline) * 100).toFixed(2);
+
+        // Destroy old chart if exists
         if (chartInstance) chartInstance.destroy();
 
-        const ctx = document.getElementById('portfolioChart').getContext('2d');
-        chartInstance = new Chart(ctx, {
-          type: 'line',
-          data: {
-            labels,
-            datasets: [{
-              label: 'Portfolio Value (USDT)',
-              data: values,
-              borderColor: 'rgba(0,255,133,1)',
-              backgroundColor: 'rgba(0,255,133,0.2)',
-              fill: true,
-              tension: 0.4
-            }]
+        const options = {
+          chart: {
+            type: 'area',
+            height: 350,
+            foreColor: '#ccc',
+            background: 'transparent'
           },
-          options: {
-            responsive: true,
-            plugins: {
-              legend: { labels: { color: '#ccc' } },
-              annotation: {
-                annotations: {
-                  roiLabel: {
-                    type: 'label',
-                    xValue: labels.length - 1,
-                    yValue: values.at(-1),
-                    backgroundColor: 'rgba(0,0,0,0.6)',
-                    content: [`ROI: ${roi}%`],
-                    font: { size: 14, weight: 'bold' },
-                    color: '#00FF85',
-                    padding: 6
-                  }
-                }
-              }
-            },
-            scales: {
-              x: {
-                ticks: { color: '#ccc' }
-              },
-              y: {
-                ticks: { color: '#ccc' }
+          series: [{
+            name: 'Portfolio Value (USDT)',
+            data: seriesData
+          }],
+          xaxis: {
+            type: 'datetime',
+            labels: {
+              style: {
+                colors: '#ccc'
               }
             }
-          }
-        });
+          },
+          yaxis: {
+            labels: {
+              style: {
+                colors: '#ccc'
+              }
+            }
+          },
+          tooltip: {
+            x: {
+              format: 'dd MMM HH:mm'
+            }
+          },
+          annotations: {
+            points: [{
+              x: seriesData.at(-1).x,
+              y: seriesData.at(-1).y,
+              marker: {
+                size: 6,
+                fillColor: '#00FF85'
+              },
+              label: {
+                borderColor: '#00FF85',
+                offsetY: -10,
+                style: {
+                  background: '#00FF85',
+                  color: '#000'
+                },
+                text: `ROI: ${roi}%`
+              }
+            }]
+          },
+          fill: {
+            type: 'gradient',
+            gradient: {
+              shade: 'dark',
+              gradientToColors: ['#00FF85'],
+              shadeIntensity: 1,
+              type: 'vertical',
+              opacityFrom: 0.4,
+              opacityTo: 0.1,
+              stops: [0, 100]
+            }
+          },
+          colors: ['#00FF85']
+        };
 
         document.getElementById('chartContainer').classList.remove('hidden');
+        chartInstance = new ApexCharts(document.querySelector("#chart"), options);
+        chartInstance.render();
       } catch (error) {
         console.error("Error fetching portfolio data:", error);
         alert("Failed to load portfolio data. Please try again.");
