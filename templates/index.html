@@ -49,14 +49,27 @@
 
     container.classList.remove("hidden");
 
-    const data = [
-      { x: new Date("2025-04-24T06:48:33.440Z"), y: 19.57 },
-      { x: new Date("2025-04-24T06:54:55.024Z"), y: 19.55 }
+    const rawData = [
+      { timestamp: "2025-04-24T06:48:33.440792", value: 19.57 },
+      { timestamp: "2025-04-24T06:49:36.667476", value: 19.56 },
+      { timestamp: "2025-04-24T06:50:40.788669", value: 19.57 },
+      { timestamp: "2025-04-24T06:51:44.237972", value: 19.57 },
+      { timestamp: "2025-04-24T06:52:48.302560", value: 19.56 },
+      { timestamp: "2025-04-24T06:53:51.775106", value: 19.56 },
+      { timestamp: "2025-04-24T06:54:55.024923", value: 19.55 }
     ];
-
-    const pctChange = (((data.at(-1).y - data[0].y) / data[0].y) * 100).toFixed(2);
-
-    const chart = new ApexCharts(chartEl, {
+    
+    const seriesData = rawData.map(d => ({
+      x: new Date(d.timestamp).getTime(), // important: use getTime()
+      y: d.value
+    }));
+    
+    const baseline = rawData[0].value;
+    const latest = rawData.at(-1).value;
+    const latestTime = new Date(rawData.at(-1).timestamp).getTime();
+    const pctChange = (((latest - baseline) / baseline) * 100).toFixed(2);
+    
+    const options = {
       chart: {
         type: 'area',
         height: 320,
@@ -65,33 +78,40 @@
         toolbar: { show: false }
       },
       series: [{
-        name: "Portfolio Value",
-        data
+        name: "Portfolio Value (USDT)",
+        data: seriesData
       }],
-      xaxis: { type: 'datetime' },
+      xaxis: {
+        type: 'datetime',
+        labels: { style: { colors: '#aaa' } }
+      },
       yaxis: {
         labels: { style: { colors: '#aaa' } }
       },
       dataLabels: {
-        enabled: false // 🚫 disables label on every point
+        enabled: false // 🔕 no label per point
+      },
+      tooltip: {
+        x: { format: 'dd MMM HH:mm' }
       },
       annotations: {
-        points: [
-          {
-            x: data.at(-1).x.getTime(), // ApexCharts expects timestamp in ms
-            y: data.at(-1).y,
-            marker: { size: 6, fillColor: '#00FF85' },
-            label: {
-              borderColor: '#00FF85',
-              style: {
-                background: '#00FF85',
-                color: '#000',
-                fontWeight: 'bold'
-              },
-              text: `Change: ${pctChange}%`
-            }
+        points: [{
+          x: latestTime,
+          y: latest,
+          marker: {
+            size: 6,
+            fillColor: '#00FF85'
+          },
+          label: {
+            borderColor: '#00FF85',
+            style: {
+              background: '#00FF85',
+              color: '#000',
+              fontWeight: 'bold'
+            },
+            text: `Change: ${pctChange}%`
           }
-        ]
+        }]
       },
       fill: {
         type: 'gradient',
@@ -106,9 +126,11 @@
         }
       },
       colors: ['#00FF85']
-    });
-
+    };
+    
+    const chart = new ApexCharts(document.querySelector("#chart"), options);
     chart.render();
+
   });
 </script>
 
