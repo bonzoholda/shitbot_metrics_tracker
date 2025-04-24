@@ -101,6 +101,12 @@
               formatter: (val) => `${val.toFixed(2)} USDT`
             }
           },
+          markers: {
+            size: 0 // 👈 hides default point markers/labels
+          },
+          dataLabels: {
+            enabled: false // 👈 ensures no data value annotations appear
+          },
           annotations: {
             points: [{
               x: latestTime,
