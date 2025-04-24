@@ -15,20 +15,23 @@ def get_user_data(wallet: str):
     conn = sqlite3.connect("metrics.db")
     c = conn.cursor()
 
+    # Get baseline
     c.execute("SELECT portfolio_value FROM portfolio_log WHERE wallet = ? ORDER BY timestamp ASC LIMIT 1", (wallet,))
     row = c.fetchone()
     baseline = row[0] if row else 1
 
+    # Fetch 90 most recent entries
     c.execute("""
         SELECT timestamp, portfolio_value
         FROM portfolio_log
         WHERE wallet = ?
-        GROUP BY DATE(timestamp)
         ORDER BY timestamp DESC
         LIMIT 90
     """, (wallet,))
     rows = c.fetchall()
     conn.close()
 
+    # Prepare data for chart
     data = [{"timestamp": r[0], "value": r[1]} for r in reversed(rows)]
     return { "data": data, "baseline": baseline }
+
