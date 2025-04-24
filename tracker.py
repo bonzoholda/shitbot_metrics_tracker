@@ -1,16 +1,21 @@
 import httpx
 import sqlite3
+import os
 from datetime import datetime
 import asyncio
 from fastapi import FastAPI
 
-DB_NAME = "metrics.db"
+# ✅ Use shared SQLite file path from Railway env var
+DB_PATH = os.getenv("DATABASE_PATH", "metrics.db")
 CLIENT_LIST = "clients.txt"
 
 app = FastAPI()
 
+def get_connection():
+    return sqlite3.connect(DB_PATH)
+
 def init_db():
-    conn = sqlite3.connect(DB_NAME)
+    conn = get_connection()
     c = conn.cursor()
     c.execute("""
         CREATE TABLE IF NOT EXISTS portfolio_log (
@@ -22,6 +27,22 @@ def init_db():
             wmatic_balance REAL
         )
     """)
+    conn.commit()
+    conn.close()
+
+def log_to_db(data):
+    conn = get_connection()
+    c = conn.cursor()
+    c.execute("""
+        INSERT INTO portfolio_log (wallet, timestamp, portfolio_value, usdt_balance, wmatic_balance)
+        VALUES (?, ?, ?, ?, ?)
+    """, (
+        data['wallet'],
+        datetime.utcnow().isoformat(),
+        data['portfolio_value'],
+        data['usdt_balance'],
+        data['wmatic_balance']
+    ))
     conn.commit()
     conn.close()
 
@@ -45,24 +66,6 @@ async def fetch_stats(url: str):
     except Exception as e:
         print(f"[{url}] Failed: {e}")
 
-def log_to_db(data):
-    from datetime import datetime
-    conn = sqlite3.connect("metrics.db")
-    c = conn.cursor()
-    c.execute("""
-        INSERT INTO portfolio_log (wallet, timestamp, portfolio_value, usdt_balance, wmatic_balance)
-        VALUES (?, ?, ?, ?, ?)
-    """, (
-        data['wallet'],
-        datetime.utcnow().isoformat(),
-        data['portfolio_value'],
-        data['usdt_balance'],
-        data['wmatic_balance']
-    ))
-    conn.commit()
-    conn.close()
-
-
 async def track_loop():
     while True:
         try:
@@ -73,7 +76,7 @@ async def track_loop():
         except Exception as e:
             print(f"[Tracker Error] {e}")
 
-        await asyncio.sleep(60)  # 10 min
+        await asyncio.sleep(60)  # every minute
 
 @app.on_event("startup")
 async def start_tracking():
