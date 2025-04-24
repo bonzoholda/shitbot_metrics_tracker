@@ -40,6 +40,7 @@ async def fetch_stats(url: str):
 
                 log_to_db({
                     "wallet": data.get("account_wallet"),
+                    "timestamp": datetime.utcnow().isoformat(),
                     "portfolio_value": data.get("portfolio_value"),
                     "usdt_balance": data.get("usdt_balance"),
                     "wmatic_balance": data.get("wmatic_balance")
@@ -56,14 +57,16 @@ def log_to_db(data):
         conn = get_connection()
         c = conn.cursor()
         c.execute("""
-            INSERT INTO portfolio_log (wallet, portfolio_value, usdt_balance, wmatic_balance)
-            VALUES (?, ?, ?, ?)
+            INSERT INTO portfolio_log (wallet, timestamp, portfolio_value, usdt_balance, wmatic_balance)
+            VALUES (?, ?, ?, ?, ?)
         """, (
             data['wallet'],
+            datetime.utcnow().isoformat(),  # Timestamp is created when data is logged
             data['portfolio_value'],
             data['usdt_balance'],
             data['wmatic_balance']
         ))
+
         conn.commit()
         conn.close()
     except Exception as e:
