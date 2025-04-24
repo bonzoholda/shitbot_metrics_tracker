@@ -61,7 +61,7 @@ def log_to_db(data):
             VALUES (?, ?, ?, ?, ?)
         """, (
             data['wallet'],
-            datetime.utcnow().isoformat(),  # Timestamp is created when data is logged
+            data['timestamp'],
             data['portfolio_value'],
             data['usdt_balance'],
             data['wmatic_balance']
