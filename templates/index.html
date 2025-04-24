@@ -67,7 +67,11 @@
           y: d.value
         }));
 
-        const roi = (((seriesData.at(-1).y - baseline) / baseline) * 100).toFixed(2);
+        // Calculate percentage change from the first point
+        const initialValue = seriesData[0].y;
+        const latestValue = seriesData.at(-1).y;
+        const percentageChange = (((latestValue - initialValue) / initialValue) * 100).toFixed(2);
+        const changeText = `${percentageChange >= 0 ? '+' : ''}${percentageChange}%`;
 
         if (chartInstance) chartInstance.destroy();
 
@@ -101,7 +105,7 @@
               label: {
                 borderColor: '#00FF85',
                 style: { background: '#00FF85', color: '#000' },
-                text: `ROI: ${roi}%`
+                text: `Change: ${changeText}`
               }
             }]
           },
