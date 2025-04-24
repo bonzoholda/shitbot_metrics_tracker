@@ -73,7 +73,7 @@ async def track_loop():
         except Exception as e:
             print(f"[Tracker Error] {e}")
 
-        await asyncio.sleep(600)  # 10 min
+        await asyncio.sleep(60)  # 10 min
 
 @app.on_event("startup")
 async def start_tracking():
