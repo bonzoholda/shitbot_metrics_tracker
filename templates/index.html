@@ -46,7 +46,9 @@
 
   <!-- Script -->
   <script>
-    let chartInstance;
+    let chartInstance = null;
+    let currentWallet = null;
+    let refreshInterval = null;
 
     async function fetchAndDraw(wallet) {
       try {
@@ -67,11 +69,12 @@
           y: d.value
         }));
 
-        const latest = seriesData.at(-1).y;
-        const latestTime = seriesData.at(-1).x;
-        const pctChange = (((latest - baseline) / baseline) * 100).toFixed(2);
+        const latestPoint = seriesData[seriesData.length - 1];
+        const pctChange = (((latestPoint.y - baseline) / baseline) * 100).toFixed(2);
 
-        if (chartInstance) chartInstance.destroy();
+        if (chartInstance) {
+          chartInstance.destroy();
+        }
 
         const options = {
           chart: {
@@ -94,25 +97,23 @@
           },
           tooltip: {
             enabled: true,
-            shared: false,
-            intersect: true,
             x: { format: 'dd MMM HH:mm' },
             y: {
               formatter: (val) => `${val.toFixed(2)} USDT`
             }
           },
           markers: {
-            size: 0 // 👈 hides default point markers/labels
+            size: 0
           },
           dataLabels: {
-            enabled: false // 👈 ensures no data value annotations appear
+            enabled: false
           },
           annotations: {
             points: [{
-              x: latestTime,
-              y: latest,
+              x: latestPoint.x.getTime(),
+              y: latestPoint.y,
               marker: {
-                size: 6,
+                size: 5,
                 fillColor: '#00FF85'
               },
               label: {
@@ -160,7 +161,12 @@
     document.getElementById('walletForm').addEventListener('submit', (e) => {
       e.preventDefault();
       const wallet = document.getElementById('wallet').value.trim();
-      if (wallet) fetchAndDraw(wallet);
+      if (wallet) {
+        currentWallet = wallet;
+        fetchAndDraw(wallet);
+        if (refreshInterval) clearInterval(refreshInterval);
+        refreshInterval = setInterval(() => fetchAndDraw(currentWallet), 60000);
+      }
     });
   </script>
 </body>
