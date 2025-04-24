@@ -56,11 +56,10 @@ def log_to_db(data):
         conn = get_connection()
         c = conn.cursor()
         c.execute("""
-            INSERT INTO portfolio_log (wallet, timestamp, portfolio_value, usdt_balance, wmatic_balance)
-            VALUES (?, ?, ?, ?, ?)
+            INSERT INTO portfolio_log (wallet, portfolio_value, usdt_balance, wmatic_balance)
+            VALUES (?, ?, ?, ?)
         """, (
             data['wallet'],
-            datetime.utcnow().isoformat(),
             data['portfolio_value'],
             data['usdt_balance'],
             data['wmatic_balance']
