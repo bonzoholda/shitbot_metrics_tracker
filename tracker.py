@@ -28,10 +28,15 @@ def init_db():
 async def fetch_stats(url: str):
     try:
         async with httpx.AsyncClient(timeout=10) as client:
-            res = await client.get(f"{url}/api/stats")
+            res = await client.get(f"{url}/api/signal")
             if res.status_code == 200:
                 data = res.json()
-                log_to_db(data)
+                log_to_db({
+                    "wallet": data["account_wallet"],
+                    "portfolio_value": data["portfolio_value"],
+                    "usdt_balance": data["usdt_balance"],
+                    "wmatic_balance": data["wmatic_balance"]
+                })
                 print(f"[{url}] Logged: {data['portfolio_value']}")
             else:
                 print(f"[{url}] Error: {res.status_code}")
