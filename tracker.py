@@ -3,7 +3,8 @@ import httpx
 import sqlite3
 from datetime import datetime
 import asyncio
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
+from fastapi.responses import JSONResponse
 
 DB_PATH = os.getenv("DATABASE_PATH", "/data/metrics.db")
 CLIENT_LIST = "clients.txt"
@@ -11,7 +12,6 @@ CLIENT_LIST = "clients.txt"
 app = FastAPI()
 
 def get_connection():
-    # Ensure parent directory exists
     os.makedirs(os.path.dirname(DB_PATH), exist_ok=True)
     return sqlite3.connect(DB_PATH)
 
@@ -52,9 +52,8 @@ async def fetch_stats(url: str):
         print(f"[{url}] Failed: {e}")
 
 def log_to_db(data):
-    from datetime import datetime
     try:
-        conn = sqlite3.connect("metrics.db")
+        conn = get_connection()
         c = conn.cursor()
         c.execute("""
             INSERT INTO portfolio_log (wallet, timestamp, portfolio_value, usdt_balance, wmatic_balance)
@@ -71,7 +70,6 @@ def log_to_db(data):
     except Exception as e:
         print(f"[DB Error] Failed to insert data: {e}")
 
-
 async def track_loop():
     while True:
         try:
@@ -87,3 +85,30 @@ async def track_loop():
 async def start_tracking():
     init_db()
     asyncio.create_task(track_loop())
+
+# ✅ New endpoint for main.py to use instead of direct DB access
+@app.get("/api/user/{wallet}")
+async def get_wallet_data(wallet: str):
+    try:
+        conn = get_connection()
+        c = conn.cursor()
+
+        c.execute("SELECT portfolio_value FROM portfolio_log WHERE wallet = ? ORDER BY timestamp ASC LIMIT 1", (wallet,))
+        row = c.fetchone()
+        baseline = row[0] if row else 1
+
+        c.execute("""
+            SELECT timestamp, portfolio_value
+            FROM portfolio_log
+            WHERE wallet = ?
+            ORDER BY timestamp DESC
+            LIMIT 90
+        """, (wallet,))
+        rows = c.fetchall()
+        conn.close()
+
+        data = [{"timestamp": r[0], "value": r[1]} for r in reversed(rows)]
+        return { "data": data, "baseline": baseline }
+
+    except sqlite3.Error as e:
+        raise HTTPException(status_code=500, detail=f"Database error: {e}")
