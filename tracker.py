@@ -105,7 +105,7 @@ async def get_wallet_data(wallet: str):
             FROM portfolio_log
             WHERE wallet = ?
             ORDER BY timestamp DESC
-            LIMIT 90
+            LIMIT 1440
         """, (wallet,))
         rows = c.fetchall()
         conn.close()
