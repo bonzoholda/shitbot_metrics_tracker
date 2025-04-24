@@ -39,12 +39,9 @@
           return;
         }
 
-        const labels = data.map(d => new Date(d.timestamp).toLocaleTimeString());
+        const labels = data.map(d => new Date(d.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
         const values = data.map(d => d.value);
-        const lastIndex = values.length - 1;
-        const roi = (((values[lastIndex] - baseline) / baseline) * 100).toFixed(2);
-
-        document.getElementById('chartContainer').classList.remove('hidden'); // show early
+        const roi = (((values.at(-1) - baseline) / baseline) * 100).toFixed(2);
 
         if (chartInstance) chartInstance.destroy();
 
@@ -68,26 +65,31 @@
               legend: { labels: { color: '#ccc' } },
               annotation: {
                 annotations: {
-                  roiLabel: {
+                  roiText: {
                     type: 'label',
+                    xValue: labels.length - 1,
+                    yValue: values.at(-1),
+                    backgroundColor: 'rgba(0,0,0,0.6)',
                     content: [`ROI: ${roi}%`],
-                    xValue: labels[lastIndex],
-                    yValue: values[lastIndex],
-                    backgroundColor: 'rgba(255,255,255,0.05)',
-                    color: '#ccc',
-                    font: { weight: 'bold' },
+                    font: { size: 14, weight: 'bold' },
+                    color: '#00FF85',
                     padding: 6
                   }
                 }
               }
             },
             scales: {
-              x: { ticks: { color: '#ccc' }},
-              y: { ticks: { color: '#ccc' }}
+              x: {
+                ticks: { color: '#ccc' }
+              },
+              y: {
+                ticks: { color: '#ccc' }
+              }
             }
           }
         });
 
+        document.getElementById('chartContainer').classList.remove('hidden');
       } catch (error) {
         console.error("Error fetching portfolio data:", error);
         alert("Failed to load portfolio data. Please try again.");
