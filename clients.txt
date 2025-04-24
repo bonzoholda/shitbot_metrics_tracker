@@ -1,2 +1,2 @@
-https://shitbotdextrader-production.up.railway.app/
-https://shitbotdextrader-production-74a0.up.railway.app/
+https://shitbotdextrader-production.up.railway.app
+https://shitbotdextrader-production-74a0.up.railway.app
