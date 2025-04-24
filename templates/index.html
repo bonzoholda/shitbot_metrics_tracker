@@ -14,11 +14,13 @@
 </head>
 <body class="bg-zinc-900 text-white min-h-screen flex items-center justify-center px-4 py-8">
   <div class="w-full max-w-4xl space-y-6">
+    <!-- Header -->
     <div class="text-center">
       <h1 class="text-4xl font-extrabold text-green-400 tracking-tight mb-2">📈 ShitBot Portfolio Tracker</h1>
       <p class="text-zinc-400">Visualize your trading performance with real-time metrics.</p>
     </div>
 
+    <!-- Wallet Form -->
     <form id="walletForm" class="bg-zinc-800 p-6 rounded-2xl shadow-lg space-y-4">
       <label for="wallet" class="block text-left text-sm font-medium text-zinc-300">Wallet Address</label>
       <input
@@ -36,106 +38,114 @@
       </button>
     </form>
 
+    <!-- Chart Section -->
     <div id="chartContainer" class="bg-zinc-800 p-6 rounded-2xl shadow-xl hidden">
       <div id="chart" class="w-full h-80"></div>
     </div>
   </div>
 
-<script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
-<script>
-  document.addEventListener('DOMContentLoaded', () => {
-    const chartEl = document.querySelector("#chart");
-    const container = document.getElementById('chartContainer');
+  <!-- Script -->
+  <script>
+    let chartInstance;
 
-    container.classList.remove("hidden");
+    async function fetchAndDraw(wallet) {
+      try {
+        const res = await fetch(`/api/user/${wallet}`);
+        if (!res.ok) throw new Error(`Failed to fetch data. Status: ${res.status}`);
 
-    const rawData = [
-      { timestamp: "2025-04-24T06:48:33.440792", value: 19.57 },
-      { timestamp: "2025-04-24T06:49:36.667476", value: 19.56 },
-      { timestamp: "2025-04-24T06:50:40.788669", value: 19.57 },
-      { timestamp: "2025-04-24T06:51:44.237972", value: 19.57 },
-      { timestamp: "2025-04-24T06:52:48.302560", value: 19.56 },
-      { timestamp: "2025-04-24T06:53:51.775106", value: 19.56 },
-      { timestamp: "2025-04-24T06:54:55.024923", value: 19.55 }
-    ];
-    
-    const seriesData = rawData.map(d => ({
-      x: new Date(d.timestamp).getTime(), // important: use getTime()
-      y: d.value
-    }));
-    
-    const baseline = rawData[0].value;
-    const latest = rawData.at(-1).value;
-    const latestTime = new Date(rawData.at(-1).timestamp).getTime();
-    const pctChange = (((latest - baseline) / baseline) * 100).toFixed(2);
-    
-    const options = {
-      chart: {
-        type: 'area',
-        height: 320,
-        background: 'transparent',
-        foreColor: '#ccc',
-        toolbar: { show: false }
-      },
-      series: [{
-        name: "Portfolio Value (USDT)",
-        data: seriesData
-      }],
-      xaxis: {
-        type: 'datetime',
-        labels: { style: { colors: '#aaa' } }
-      },
-      yaxis: {
-        labels: { style: { colors: '#aaa' } }
-      },
-      dataLabels: {
-        enabled: false // 🔕 no label per point
-      },
-      tooltip: {
-        x: { format: 'dd MMM HH:mm' }
-      },
-      annotations: {
-        points: [{
-          x: latestTime,
-          y: latest,
-          marker: {
-            size: 6,
-            fillColor: '#00FF85'
-          },
-               label: {
-            borderColor: '#00FF85',
-            style: {
-              background: '#00FF85',
-              color: '#000',
-              fontWeight: 'bold'
-            },
-            text: `Change: ${pctChange}%`,
-            textAnchor: 'end', // Align right
-            offsetX: -10       // Shift a bit left to prevent clipping
-          }
+        const json = await res.json();
+        const data = json.data;
+        const baseline = json.baseline;
 
-        }]
-      },
-      fill: {
-        type: 'gradient',
-        gradient: {
-          shade: 'dark',
-          gradientToColors: ['#00FF85'],
-          shadeIntensity: 1,
-          type: 'vertical',
-          opacityFrom: 0.5,
-          opacityTo: 0.1,
-          stops: [0, 100]
+        if (!data || data.length === 0) {
+          alert("No data found for the specified wallet.");
+          return;
         }
-      },
-      colors: ['#00FF85']
-    };
-    
-    const chart = new ApexCharts(document.querySelector("#chart"), options);
-    chart.render();
 
-  });
-</script>
+        const seriesData = data.map(d => ({
+          x: new Date(d.timestamp),
+          y: d.value
+        }));
 
+        const latest = seriesData.at(-1).y;
+        const latestTime = seriesData.at(-1).x;
+        const pctChange = (((latest - baseline) / baseline) * 100).toFixed(2);
+
+        if (chartInstance) chartInstance.destroy();
+
+        const options = {
+          chart: {
+            type: 'area',
+            height: 320,
+            foreColor: '#ccc',
+            background: 'transparent',
+            toolbar: { show: false }
+          },
+          series: [{
+            name: 'Portfolio Value (USDT)',
+            data: seriesData
+          }],
+          xaxis: {
+            type: 'datetime',
+            labels: { style: { colors: '#aaa' } }
+          },
+          yaxis: {
+            labels: { style: { colors: '#aaa' } }
+          },
+          tooltip: {
+            x: { format: 'dd MMM HH:mm' }
+          },
+          annotations: {
+            points: [{
+              x: latestTime,
+              y: latest,
+              marker: {
+                size: 6,
+                fillColor: '#00FF85'
+              },
+              label: {
+                text: `Change: ${pctChange}%`,
+                borderColor: '#00FF85',
+                textAnchor: 'end',
+                offsetX: -10,
+                style: {
+                  background: '#00FF85',
+                  color: '#000',
+                  fontWeight: 'bold',
+                  fontSize: '12px'
+                }
+              }
+            }]
+          },
+          fill: {
+            type: 'gradient',
+            gradient: {
+              shade: 'dark',
+              gradientToColors: ['#00FF85'],
+              shadeIntensity: 1,
+              type: 'vertical',
+              opacityFrom: 0.5,
+              opacityTo: 0.1,
+              stops: [0, 100]
+            }
+          },
+          colors: ['#00FF85']
+        };
+
+        document.getElementById('chartContainer').classList.remove('hidden');
+        chartInstance = new ApexCharts(document.querySelector("#chart"), options);
+        chartInstance.render();
+      } catch (error) {
+        console.error("Error fetching portfolio data:", error);
+        alert("Failed to load portfolio data. Please try again.");
+      }
+    }
+
+    document.getElementById('walletForm').addEventListener('submit', (e) => {
+      e.preventDefault();
+      const wallet = document.getElementById('wallet').value.trim();
+      if (wallet) fetchAndDraw(wallet);
+    });
+  </script>
 </body>
 </html>
