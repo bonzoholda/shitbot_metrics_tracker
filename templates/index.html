@@ -93,7 +93,13 @@
             labels: { style: { colors: '#aaa' } }
           },
           tooltip: {
-            x: { format: 'dd MMM HH:mm' }
+            enabled: true,
+            shared: false,
+            intersect: true,
+            x: { format: 'dd MMM HH:mm' },
+            y: {
+              formatter: (val) => `${val.toFixed(2)} USDT`
+            }
           },
           annotations: {
             points: [{
@@ -128,6 +134,10 @@
               opacityTo: 0.1,
               stops: [0, 100]
             }
+          },
+          stroke: {
+            curve: 'smooth',
+            width: 2
           },
           colors: ['#00FF85']
         };
