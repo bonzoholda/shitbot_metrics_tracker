@@ -65,12 +65,14 @@
         }
 
         const seriesData = data.map(d => ({
-          x: new Date(d.timestamp),
+          x: new Date(d.timestamp).getTime(), // Ensure correct timestamp handling
           y: d.value
         }));
 
-        const latestPoint = seriesData[seriesData.length - 1];
-        const pctChange = (((latestPoint.y - baseline) / baseline) * 100).toFixed(2);
+        const latest = data[data.length - 1].value;
+        const baselineValue = baseline;
+        const pctChange = (((latest - baselineValue) / baselineValue) * 100).toFixed(2);
+        const latestTime = new Date(data[data.length - 1].timestamp).getTime();
 
         if (chartInstance) {
           chartInstance.destroy();
@@ -80,12 +82,12 @@
           chart: {
             type: 'area',
             height: 320,
-            foreColor: '#ccc',
             background: 'transparent',
+            foreColor: '#ccc',
             toolbar: { show: false }
           },
           series: [{
-            name: 'Portfolio Value (USDT)',
+            name: "Portfolio Value (USDT)",
             data: seriesData
           }],
           xaxis: {
@@ -95,38 +97,28 @@
           yaxis: {
             labels: { style: { colors: '#aaa' } }
           },
-          tooltip: {
-            enabled: true,
-            x: { format: 'dd MMM HH:mm' },
-            y: {
-              formatter: (val) => `${val.toFixed(2)} USDT`
-            }
-          },
-          markers: {
-            size: 0
-          },
           dataLabels: {
-            enabled: false
+            enabled: false // Disable data labels for each point
+          },
+          tooltip: {
+            x: { format: 'dd MMM HH:mm' }
           },
           annotations: {
             points: [{
-              x: latestPoint.x.getTime(),
-              y: latestPoint.y,
+              x: latestTime,
+              y: latest,
               marker: {
-                size: 5,
+                size: 6,
                 fillColor: '#00FF85'
               },
               label: {
-                text: `Change: ${pctChange}%`,
                 borderColor: '#00FF85',
-                textAnchor: 'end',
-                offsetX: -10,
                 style: {
                   background: '#00FF85',
                   color: '#000',
-                  fontWeight: 'bold',
-                  fontSize: '12px'
-                }
+                  fontWeight: 'bold'
+                },
+                text: `Change: ${pctChange}%`
               }
             }]
           },
@@ -141,10 +133,6 @@
               opacityTo: 0.1,
               stops: [0, 100]
             }
-          },
-          stroke: {
-            curve: 'smooth',
-            width: 2
           },
           colors: ['#00FF85']
         };
