@@ -53,6 +53,7 @@ async def fetch_stats(url: str):
 
 
 def log_to_db(data):
+    print(f"Logging data to DB: {data}")  # Debugging
     try:
         conn = get_connection()
         c = conn.cursor()
@@ -66,11 +67,11 @@ def log_to_db(data):
             data['usdt_balance'],
             data['wmatic_balance']
         ))
-
         conn.commit()
         conn.close()
     except Exception as e:
         print(f"[DB Error] Failed to insert data: {e}")
+
 
 async def track_loop():
     while True:
