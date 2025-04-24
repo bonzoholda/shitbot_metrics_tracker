@@ -4,8 +4,11 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>ShitBot Tracker</title>
+  <!-- Chart.js -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <!-- Chart.js Annotation Plugin -->
   <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@1.1.0"></script>
+  <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-zinc-900 text-white p-6">
@@ -23,6 +26,9 @@
   </div>
 
   <script>
+    // Register the annotation plugin
+    Chart.register(window['chartjs-plugin-annotation']);
+
     let chartInstance;
 
     async function fetchAndDraw(wallet) {
@@ -65,7 +71,7 @@
               legend: { labels: { color: '#ccc' } },
               annotation: {
                 annotations: {
-                  roiText: {
+                  roiLabel: {
                     type: 'label',
                     xValue: labels.length - 1,
                     yValue: values.at(-1),
