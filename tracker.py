@@ -34,10 +34,11 @@ def init_db():
 async def fetch_stats(url: str):
     try:
         async with httpx.AsyncClient(timeout=10) as client:
+            print(f"Fetching stats from {url}/api/signal")  # Debugging
             res = await client.get(f"{url}/api/signal")
             if res.status_code == 200:
                 data = res.json()
-
+                print(f"Fetched data: {data}")  # Debugging
                 log_to_db({
                     "wallet": data.get("account_wallet"),
                     "timestamp": datetime.utcnow().isoformat(),
@@ -45,12 +46,11 @@ async def fetch_stats(url: str):
                     "usdt_balance": data.get("usdt_balance"),
                     "wmatic_balance": data.get("wmatic_balance")
                 })
-
-                print(f"[{url}] Logged: {data['portfolio_value']} USDT")
             else:
                 print(f"[{url}] Error: {res.status_code}")
     except Exception as e:
         print(f"[{url}] Failed: {e}")
+
 
 def log_to_db(data):
     try:
