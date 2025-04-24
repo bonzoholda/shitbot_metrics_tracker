@@ -14,7 +14,7 @@
 
     <form id="walletForm" class="mb-4">
       <input type="text" id="wallet" class="w-full p-3 rounded bg-zinc-800 text-white" placeholder="Enter your wallet address..." required />
-      <button class="mt-2 bg-green-500 text-black px-4 py-2 rounded">View Portfolio</button>
+      <button type="submit" class="mt-2 bg-green-500 text-black px-4 py-2 rounded">View Portfolio</button>
     </form>
 
     <div class="bg-zinc-800 rounded-lg p-4 hidden" id="chartContainer">
@@ -25,61 +25,81 @@
   <script>
     let chartInstance;
 
+    // This function fetches portfolio data and renders the chart
     async function fetchAndDraw(wallet) {
-      const res = await fetch(`/api/user/${wallet}`);
-      const json = await res.json();
+      try {
+        // Fetch portfolio data from the API
+        const res = await fetch(`/api/user/${wallet}`);
+        if (!res.ok) {
+          throw new Error(`Failed to fetch data. Status: ${res.status}`);
+        }
 
-      const data = json.data;
-      const baseline = json.baseline;
-      const labels = data.map(d => new Date(d.timestamp).toLocaleDateString());
-      const values = data.map(d => d.value);
-      const roi = (((values.at(-1) - baseline) / baseline) * 100).toFixed(2);
+        const json = await res.json();
+        const data = json.data;
+        const baseline = json.baseline;
 
-      if (chartInstance) chartInstance.destroy();
+        if (!data || data.length === 0) {
+          alert("No data found for the specified wallet.");
+          return;
+        }
 
-      const ctx = document.getElementById('portfolioChart').getContext('2d');
-      chartInstance = new Chart(ctx, {
-        type: 'line',
-        data: {
-          labels,
-          datasets: [{
-            label: 'Portfolio Value (USDT)',
-            data: values,
-            borderColor: 'rgba(0,255,133,1)',
-            backgroundColor: 'rgba(0,255,133,0.2)',
-            fill: true,
-            tension: 0.4
-          }]
-        },
-        options: {
-          responsive: true,
-          plugins: {
-            legend: { labels: { color: '#ccc' } },
-            annotation: {
-              annotations: {
-                roiLabel: {
-                  type: 'label',
-                  content: [`ROI: ${roi}%`],
-                  xValue: labels.at(-1),
-                  yValue: values.at(-1),
-                  backgroundColor: 'rgba(255,255,255,0.05)',
-                  color: '#ccc',
-                  font: { weight: 'bold' },
-                  padding: 6
+        const labels = data.map(d => new Date(d.timestamp).toLocaleDateString());
+        const values = data.map(d => d.value);
+        const roi = (((values.at(-1) - baseline) / baseline) * 100).toFixed(2);
+
+        // Destroy the old chart instance before creating a new one
+        if (chartInstance) chartInstance.destroy();
+
+        // Create a new chart with the fetched data
+        const ctx = document.getElementById('portfolioChart').getContext('2d');
+        chartInstance = new Chart(ctx, {
+          type: 'line',
+          data: {
+            labels,
+            datasets: [{
+              label: 'Portfolio Value (USDT)',
+              data: values,
+              borderColor: 'rgba(0,255,133,1)',
+              backgroundColor: 'rgba(0,255,133,0.2)',
+              fill: true,
+              tension: 0.4
+            }]
+          },
+          options: {
+            responsive: true,
+            plugins: {
+              legend: { labels: { color: '#ccc' } },
+              annotation: {
+                annotations: {
+                  roiLabel: {
+                    type: 'label',
+                    content: [`ROI: ${roi}%`],
+                    xValue: labels.at(-1),
+                    yValue: values.at(-1),
+                    backgroundColor: 'rgba(255,255,255,0.05)',
+                    color: '#ccc',
+                    font: { weight: 'bold' },
+                    padding: 6
+                  }
                 }
               }
+            },
+            scales: {
+              x: { ticks: { color: '#ccc' }},
+              y: { ticks: { color: '#ccc' }}
             }
-          },
-          scales: {
-            x: { ticks: { color: '#ccc' }},
-            y: { ticks: { color: '#ccc' }}
           }
-        }
-      });
+        });
 
-      document.getElementById('chartContainer').classList.remove('hidden');
+        // Show the chart container after it's populated with data
+        document.getElementById('chartContainer').classList.remove('hidden');
+      } catch (error) {
+        console.error("Error fetching portfolio data:", error);
+        alert("Failed to load portfolio data. Please try again.");
+      }
     }
 
+    // Handle form submission
     document.getElementById('walletForm').addEventListener('submit', (e) => {
       e.preventDefault();
       const wallet = document.getElementById('wallet').value.trim();
