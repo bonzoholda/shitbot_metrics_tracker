@@ -41,9 +41,12 @@
     <!-- Chart Section -->
     <div id="chartContainer" class="bg-zinc-800 p-6 rounded-2xl shadow-xl hidden">
       <div id="chart" class="w-full h-80"></div>
+      <div id="duration" class="text-sm text-zinc-400 mt-4 text-center"></div>
     </div>
+
   </div>
 
+  
   <!-- Script -->
   <script>
     let chartInstance = null;
@@ -143,6 +146,21 @@
         document.getElementById('chartContainer').classList.remove('hidden');
         chartInstance = new ApexCharts(document.querySelector("#chart"), options);
         chartInstance.render();
+
+        // Calculate and show duration
+        const start = new Date(data[0].timestamp);
+        const end = new Date(data[data.length - 1].timestamp);
+        const diffMs = end - start;
+        const diffMins = Math.floor(diffMs / 60000);
+        const days = Math.floor(diffMins / (60 * 24));
+        const hours = Math.floor((diffMins % (60 * 24)) / 60);
+        const minutes = diffMins % 60;
+        
+        document.getElementById('duration').textContent = 
+          `Duration of tracking: ${days} days ${hours} hrs ${minutes} mins`;
+
+
+        
       } catch (error) {
         console.error("Error fetching portfolio data:", error);
         alert("Failed to load portfolio data. Please try again.");
