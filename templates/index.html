@@ -45,107 +45,112 @@
   </div>
 
   <!-- Script -->
-  <script>
-    let chartInstance;
-  
-    async function fetchAndDraw(wallet) {
-      try {
-        const res = await fetch(`/api/user/${wallet}`);
-        if (!res.ok) throw new Error(`Failed to fetch data. Status: ${res.status}`);
-  
-        const json = await res.json();
-        const data = json.data;
-  
-        if (!data || data.length === 0) {
-          alert("No data found for the specified wallet.");
-          return;
-        }
-  
-        const seriesData = data.map(d => ({
-          x: new Date(d.timestamp),
-          y: d.value
-        }));
-  
-        const initialValue = seriesData[0].y;
-        const latestValue = seriesData.at(-1).y;
-        const percentageChange = (((latestValue - initialValue) / initialValue) * 100).toFixed(2);
-        const changeText = `${percentageChange >= 0 ? '+' : ''}${percentageChange}%`;
-  
-        if (chartInstance) chartInstance.destroy();
-  
-        const options = {
-          chart: {
-            type: 'area',
-            height: 320,
-            foreColor: '#ccc',
-            background: 'transparent',
-            toolbar: { show: false }
-          },
-          series: [{
-            name: 'Portfolio Value (USDT)',
-            data: seriesData
-          }],
-          xaxis: {
-            type: 'datetime',
-            labels: { style: { colors: '#aaa' } }
-          },
-          yaxis: {
-            labels: { style: { colors: '#aaa' } }
-          },
-          tooltip: {
-            x: { format: 'dd MMM HH:mm' }
-          },
-          annotations: {
-            points: [
-              {
-                x: seriesData.at(-1).x,
-                y: seriesData.at(-1).y,
-                marker: {
-                  size: 6,
-                  fillColor: '#00FF85',
-                  strokeColor: '#00FF85'
-                },
-                label: {
-                  text: `Change: ${changeText}`,
-                  style: {
-                    background: '#00FF85',
-                    color: '#000',
-                    fontWeight: 600
-                  },
-                  offsetY: -10
-                }
-              }
-            ]
-          },
-          fill: {
-            type: 'gradient',
-            gradient: {
-              shade: 'dark',
-              gradientToColors: ['#00FF85'],
-              shadeIntensity: 1,
-              type: 'vertical',
-              opacityFrom: 0.5,
-              opacityTo: 0.1,
-              stops: [0, 100]
-            }
-          },
-          colors: ['#00FF85']
-        };
-  
-        document.getElementById('chartContainer').classList.remove('hidden');
-        chartInstance = new ApexCharts(document.querySelector("#chart"), options);
-        chartInstance.render();
-      } catch (error) {
-        console.error("Error fetching portfolio data:", error);
-        alert("Failed to load portfolio data. Please try again.");
+ <script>
+  let chartInstance;
+
+  async function fetchAndDraw(wallet) {
+    try {
+      const res = await fetch(`/api/user/${wallet}`);
+      if (!res.ok) throw new Error(`Failed to fetch data. Status: ${res.status}`);
+
+      const json = await res.json();
+      const data = json.data;
+
+      if (!data || data.length < 2) {
+        alert("Not enough data to show chart.");
+        return;
       }
+
+      // Map data to chart series format
+      const seriesData = data.map(d => ({
+        x: new Date(d.timestamp),
+        y: d.value
+      }));
+
+      const initial = seriesData[0].y;
+      const latest = seriesData[seriesData.length - 1].y;
+      const percentChange = (((latest - initial) / initial) * 100).toFixed(2);
+      const labelText = `${percentChange >= 0 ? '+' : ''}${percentChange}%`;
+
+      if (chartInstance) chartInstance.destroy();
+
+      const options = {
+        chart: {
+          type: 'area',
+          height: 320,
+          foreColor: '#ccc',
+          background: 'transparent',
+          toolbar: { show: false }
+        },
+        series: [{
+          name: 'Portfolio Value (USDT)',
+          data: seriesData
+        }],
+        xaxis: {
+          type: 'datetime',
+          labels: { style: { colors: '#aaa' } }
+        },
+        yaxis: {
+          labels: { style: { colors: '#aaa' } }
+        },
+        tooltip: {
+          x: { format: 'dd MMM HH:mm' }
+        },
+        // ✅ Only ONE annotation on latest point
+        annotations: {
+          points: [
+            {
+              x: seriesData.at(-1).x,
+              y: seriesData.at(-1).y,
+              marker: {
+                size: 6,
+                fillColor: '#00FF85',
+                strokeColor: '#00FF85',
+                strokeWidth: 2,
+              },
+              label: {
+                text: `Change: ${labelText}`,
+                style: {
+                  background: '#00FF85',
+                  color: '#000',
+                  fontWeight: 'bold'
+                },
+                offsetY: -10
+              }
+            }
+          ]
+        },
+        fill: {
+          type: 'gradient',
+          gradient: {
+            shade: 'dark',
+            gradientToColors: ['#00FF85'],
+            shadeIntensity: 1,
+            type: 'vertical',
+            opacityFrom: 0.5,
+            opacityTo: 0.1,
+            stops: [0, 100]
+          }
+        },
+        colors: ['#00FF85']
+      };
+
+      // Show and render the chart
+      document.getElementById('chartContainer').classList.remove('hidden');
+      chartInstance = new ApexCharts(document.querySelector("#chart"), options);
+      chartInstance.render();
+    } catch (error) {
+      console.error("Error fetching portfolio data:", error);
+      alert("Failed to load portfolio data. Please try again.");
     }
-  
-    document.getElementById('walletForm').addEventListener('submit', (e) => {
-      e.preventDefault();
-      const wallet = document.getElementById('wallet').value.trim();
-      if (wallet) fetchAndDraw(wallet);
-    });
-  </script>
+  }
+
+  document.getElementById('walletForm').addEventListener('submit', (e) => {
+    e.preventDefault();
+    const wallet = document.getElementById('wallet').value.trim();
+    if (wallet) fetchAndDraw(wallet);
+  });
+</script>
+
 </body>
 </html>
