@@ -102,15 +102,18 @@
             size: 6,
             fillColor: '#00FF85'
           },
-          label: {
+               label: {
             borderColor: '#00FF85',
             style: {
               background: '#00FF85',
               color: '#000',
               fontWeight: 'bold'
             },
-            text: `Change: ${pctChange}%`
+            text: `Change: ${pctChange}%`,
+            textAnchor: 'end', // Align right
+            offsetX: -10       // Shift a bit left to prevent clipping
           }
+
         }]
       },
       fill: {
