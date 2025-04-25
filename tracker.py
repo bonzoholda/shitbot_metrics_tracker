@@ -23,18 +23,27 @@ def get_clients_connection():
     os.makedirs(os.path.dirname(CLIENT_DB_PATH), exist_ok=True)
     return sqlite3.connect(CLIENT_DB_PATH)
 
-# Function to initialize the clients DB
+# Function to initialize the clients DB with a default client URL
 def init_clients_db():
     conn = get_clients_connection()
     c = conn.cursor()
+    # Create the clients table if it doesn't exist
     c.execute("""
         CREATE TABLE IF NOT EXISTS clients (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             url TEXT NOT NULL UNIQUE
         )
     """)
-    conn.commit()
+    
+    # Insert default client URL if it doesn't already exist
+    default_url = "https://shitbotdextrader-production.up.railway.app"
+    c.execute("SELECT COUNT(*) FROM clients WHERE url = ?", (default_url,))
+    if c.fetchone()[0] == 0:
+        c.execute("INSERT INTO clients (url) VALUES (?)", (default_url,))
+        conn.commit()
+    
     conn.close()
+
 
 # Register client API (Post Request to register client URL)
 class Client(BaseModel):
