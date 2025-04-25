@@ -18,7 +18,7 @@
     <h1 class="text-4xl font-extrabold text-green-400">📈 ShitBot Portfolio Tracker</h1>
     <p class="text-zinc-400">Auto-tracking based on your dashboard URL.</p>
 
-    <!-- Registration Box: Input for Manual URL Entry -->
+    <!-- Registration Box -->
     <div id="registerBox" class="space-y-4 hidden">
       <p class="text-zinc-400">You're not registered for tracking yet. Please enter your dashboard URL:</p>
       <input
@@ -51,20 +51,19 @@
       const urlParams = new URLSearchParams(window.location.search);
       const queryClient = urlParams.get("client");
       if (queryClient) return queryClient;
-    
+
       const referrer = document.referrer;
       if (referrer && referrer.includes("shitbotdextrader-production")) {
-        return referrer.split("?")[0]; // Strip query params
+        return referrer.replace(/\/$/, ''); // strip trailing slash
       }
-    
+
       return null;
     }
 
-
-    
-    async function fetchPortfolioData(url) {
+    async function fetchPortfolioData(clientUrl) {
       try {
-        const res = await fetch(`${TRACKER_API_BASE}/api/referrer?client=${encodeURIComponent(url)}`);
+        const encoded = encodeURIComponent(clientUrl);
+        const res = await fetch(`${TRACKER_API_BASE}/api/referrer?client=${encoded}`);
 
         if (res.status === 404) {
           document.getElementById('registerBox').classList.remove('hidden');
@@ -146,11 +145,11 @@
         const days = Math.floor(mins / (60 * 24));
         const hours = Math.floor((mins % (60 * 24)) / 60);
         const minutes = mins % 60;
-        document.getElementById('duration').textContent =
+        document.getElementById('duration').textContent = 
           `Duration of tracking: ${days} days ${hours} hrs ${minutes} mins`;
 
         if (refreshInterval) clearInterval(refreshInterval);
-        refreshInterval = setInterval(() => fetchPortfolioData(url), 60000);
+        refreshInterval = setInterval(() => fetchPortfolioData(clientUrl), 60000);
 
       } catch (err) {
         console.error("Error:", err);
@@ -158,7 +157,6 @@
       }
     }
 
-    // Handle registration
     document.getElementById("registerBtn").addEventListener("click", async () => {
       const url = document.getElementById("clientUrlInput").value;
       if (!url) {
@@ -186,16 +184,14 @@
       }
     });
 
-    // Startup logic: detect iframe origin
     window.addEventListener("DOMContentLoaded", () => {
       const clientUrl = getClientUrl();
       if (!clientUrl) {
-        alert("This tracker must be embedded from a valid dashboard URL.");
+        alert("This tracker must be embedded from a valid dashboard.");
         return;
       }
       fetchPortfolioData(clientUrl);
     });
-
   </script>
 </body>
 </html>
