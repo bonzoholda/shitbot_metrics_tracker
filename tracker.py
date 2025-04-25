@@ -89,22 +89,31 @@ from urllib.parse import urlparse
 @app.get("/api/referrer")
 async def get_client_data(request: Request):
     referrer = request.headers.get('Referer')
+    print(f"Raw referrer: {referrer}")  # 🔍 Debug
+
     if not referrer:
         raise HTTPException(status_code=400, detail="Referrer URL is missing.")
     
-    # Remove trailing slash from referrer if present
     referrer = referrer.rstrip('/')
+    print(f"Normalized referrer: {referrer}")  # 🔍 Debug
 
     try:
         # Check if referrer URL exists in the 'clients' table
         conn = get_clients_connection()
         c = conn.cursor()
+
+        # Print all clients for comparison
+        print("Clients in DB:")
+        for row in c.execute("SELECT url FROM clients"):
+            print(f"- {row[0]}")
+
         c.execute("SELECT * FROM clients WHERE url = ?", (referrer,))
         client = c.fetchone()
         if client is None:
+            print(f"Referrer {referrer} not found in clients DB")  # 🔍 Debug
             raise HTTPException(status_code=404, detail="Client not registered.")
-        
-        # Fetch portfolio data for the client's wallet (referrer URL)
+
+        # Fetch portfolio data
         conn = get_metrics_connection()
         c = conn.cursor()
         c.execute("SELECT portfolio_value FROM portfolio_log WHERE wallet = ? ORDER BY timestamp ASC LIMIT 1", (referrer,))
