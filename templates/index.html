@@ -147,22 +147,28 @@
 
     // Handle registration
     document.getElementById("registerBtn").addEventListener("click", async () => {
+      console.log("Register button clicked"); // DEBUG LOG
+    
       const url = document.getElementById("clientUrlInput").value;
       if (!url) {
         alert("Please enter a valid URL.");
         return;
       }
-
+    
+      console.log("Sending POST to:", `${TRACKER_API_BASE}/api/register`);
+    
       const res = await fetch(`${TRACKER_API_BASE}/api/register`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ url })
       });
-
+    
       if (res.ok) {
+        console.log("Client registered successfully");
         document.getElementById('registerBox').classList.add('hidden');
         fetchPortfolioData(url);
       } else {
+        console.error("Failed to register:", res.status);
         alert("Failed to register. Try again later.");
       }
     });
