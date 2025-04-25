@@ -39,6 +39,7 @@ def init_clients_db():
     default_url = "https://shitbotdextrader-production.up.railway.app"
     c.execute("SELECT COUNT(*) FROM clients WHERE url = ?", (default_url,))
     if c.fetchone()[0] == 0:
+        print(f"Inserting default client URL: {default_url}")  # Debugging
         c.execute("INSERT INTO clients (url) VALUES (?)", (default_url,))
         conn.commit()
     
@@ -57,6 +58,7 @@ async def register_client(client: Client):
         c.execute("INSERT INTO clients (url) VALUES (?)", (client.url,))
         conn.commit()
         conn.close()
+        print(f"Client registered: {client.url}")  # Debugging
         return {"message": "Client registered successfully."}
     except sqlite3.IntegrityError:
         raise HTTPException(status_code=400, detail="Client already registered.")
@@ -71,6 +73,7 @@ async def get_client_data(request: Request):
         raise HTTPException(status_code=400, detail="Referrer URL is missing.")
     
     try:
+        # Check if referrer URL exists in the 'clients' table
         conn = get_clients_connection()
         c = conn.cursor()
         c.execute("SELECT * FROM clients WHERE url = ?", (referrer,))
@@ -104,5 +107,7 @@ async def get_client_data(request: Request):
 # Initialize database when app starts
 @app.on_event("startup")
 async def start_tracking():
+    print("Initializing databases...")  # Debugging
     init_clients_db()  # Initialize the clients DB
     asyncio.create_task(track_loop())
+
