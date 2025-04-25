@@ -25,109 +25,117 @@
   </div>
 
   <script>
-    const TRACKER_API_BASE = "https://tracker-worker.up.railway.app";
-    let chartInstance = null;
-    let refreshInterval = null;
+  let chartInstance = null;
+  let refreshInterval = null;
+  const TRACKER_API_BASE = "https://tracker-worker.up.railway.app";
 
-    async function fetchPortfolioData(clientUrl) {
-      try {
-        const encoded = encodeURIComponent(clientUrl);
-        const res = await fetch(`${TRACKER_API_BASE}/api/referrer?client=${encoded}`);
-        if (!res.ok) throw new Error("Failed to fetch portfolio data");
+  async function fetchPortfolioData(url) {
+    try {
+      const res = await fetch(`${TRACKER_API_BASE}/api/referrer?client=${encodeURIComponent(url)}`);
+      if (res.status === 404) {
+        document.getElementById('registerBox').classList.remove('hidden');
+        return;
+      }
 
-        const { data, baseline } = await res.json();
-        if (!data || data.length === 0) return;
+      const json = await res.json();
+      const data = json.data;
+      const baseline = json.baseline;
 
-        const seriesData = data.map(d => ({
-          x: new Date(d.timestamp).getTime(),
-          y: d.value
-        }));
+      if (!data || data.length === 0) {
+        alert("No portfolio data yet. Wait for the next update cycle.");
+        return;
+      }
 
-        const latest = data[data.length - 1].value;
-        const pctChange = (((latest - baseline) / baseline) * 100).toFixed(2);
-        const latestTime = new Date(data[data.length - 1].timestamp).getTime();
+      const seriesData = data.map(d => ({
+        x: new Date(d.timestamp).getTime(),
+        y: d.value
+      }));
 
-        if (chartInstance) chartInstance.destroy();
-        chartInstance = new ApexCharts(document.querySelector("#chart"), {
-          chart: {
-            type: 'area',
-            height: 320,
-            background: 'transparent',
-            foreColor: '#ccc',
-            toolbar: { show: false }
-          },
-          series: [{ name: "Portfolio Value (USDT)", data: seriesData }],
-          xaxis: { type: 'datetime', labels: { style: { colors: '#aaa' } } },
-          yaxis: { labels: { style: { colors: '#aaa' } } },
-          tooltip: { x: { format: 'dd MMM HH:mm' } },
-          dataLabels: { enabled: false },
-          annotations: {
-            points: [{
-              x: latestTime,
-              y: latest,
-              marker: { size: 6, fillColor: '#00FF85' },
-              label: {
-                borderColor: '#00FF85',
-                style: { background: '#00FF85', color: '#000', fontWeight: 'bold' },
-                text: `Change: ${pctChange}%`,
-                textAnchor: 'end',
-                offsetX: -10
-              }
-            }]
-          },
-          fill: {
-            type: 'gradient',
-            gradient: {
-              shade: 'dark',
-              gradientToColors: ['#00FF85'],
-              shadeIntensity: 1,
-              type: 'vertical',
-              opacityFrom: 0.5,
-              opacityTo: 0.1,
-              stops: [0, 100]
+      const latest = data[data.length - 1].value;
+      const pctChange = (((latest - baseline) / baseline) * 100).toFixed(2);
+      const latestTime = new Date(data[data.length - 1].timestamp).getTime();
+
+      if (chartInstance) chartInstance.destroy();
+
+      chartInstance = new ApexCharts(document.querySelector("#chart"), {
+        chart: {
+          type: 'area',
+          height: 320,
+          background: 'transparent',
+          foreColor: '#ccc',
+          toolbar: { show: false }
+        },
+        series: [{ name: "Portfolio Value (USDT)", data: seriesData }],
+        xaxis: { type: 'datetime', labels: { style: { colors: '#aaa' } } },
+        yaxis: { labels: { style: { colors: '#aaa' } } },
+        tooltip: { x: { format: 'dd MMM HH:mm' } },
+        dataLabels: { enabled: false },
+        annotations: {
+          points: [{
+            x: latestTime,
+            y: latest,
+            marker: { size: 6, fillColor: '#00FF85' },
+            label: {
+              borderColor: '#00FF85',
+              style: { background: '#00FF85', color: '#000', fontWeight: 'bold' },
+              text: `Change: ${pctChange}%`,
+              textAnchor: 'end',
+              offsetX: -10
             }
-          },
-          colors: ['#00FF85'],
-          stroke: {
-            width: 0.5,
-            curve: 'smooth'
+          }]
+        },
+        fill: {
+          type: 'gradient',
+          gradient: {
+            shade: 'dark',
+            gradientToColors: ['#00FF85'],
+            shadeIntensity: 1,
+            type: 'vertical',
+            opacityFrom: 0.5,
+            opacityTo: 0.1,
+            stops: [0, 100]
           }
-        });
+        },
+        colors: ['#00FF85'],
+        stroke: {
+          width: 0.5,
+          curve: 'smooth'
+        }
+      });
 
-        document.getElementById('chartContainer').classList.remove('hidden');
-        chartInstance.render();
+      document.getElementById('chartContainer').classList.remove('hidden');
+      chartInstance.render();
 
-        const start = new Date(data[0].timestamp);
-        const end = new Date(data[data.length - 1].timestamp);
-        const mins = Math.floor((end - start) / 60000);
-        const days = Math.floor(mins / (60 * 24));
-        const hours = Math.floor((mins % (60 * 24)) / 60);
-        const minutes = mins % 60;
-        document.getElementById('duration').textContent = 
-          `Duration of tracking: ${days} days ${hours} hrs ${minutes} mins`;
+      const start = new Date(data[0].timestamp);
+      const end = new Date(data[data.length - 1].timestamp);
+      const mins = Math.floor((end - start) / 60000);
+      const days = Math.floor(mins / (60 * 24));
+      const hours = Math.floor((mins % (60 * 24)) / 60);
+      const minutes = mins % 60;
+      document.getElementById('duration').textContent = 
+        `Duration of tracking: ${days} days ${hours} hrs ${minutes} mins`;
 
-        if (refreshInterval) clearInterval(refreshInterval);
-        refreshInterval = setInterval(() => fetchPortfolioData(clientUrl), 60000);
-
-      } catch (err) {
-        console.error("Fetch error:", err);
-      }
+      if (refreshInterval) clearInterval(refreshInterval);
+      refreshInterval = setInterval(() => fetchPortfolioData(url), 60000);
+    } catch (err) {
+      console.error("Error:", err);
+      alert("Failed to load portfolio data.");
     }
+  }
 
-    // Use postMessage to securely get parent URL
-    let clientUrl = null;
-    
-    window.addEventListener("message", (event) => {
-      if (event.data.clientUrl) {
-        clientUrl = event.data.clientUrl;
-        console.log("📦 Received client URL from parent:", clientUrl);
-        fetchPortfolioData(clientUrl);
-      }
-    });
-    
-    // Request client URL from parent
-    window.parent.postMessage({ requestClientUrl: true }, "*");
+  // iframe integration
+  let clientUrl = null;
+  window.addEventListener("message", (event) => {
+    if (event.data.clientUrl) {
+      clientUrl = event.data.clientUrl;
+      console.log("📦 Received client URL from parent:", clientUrl);
+      fetchPortfolioData(clientUrl);
+    }
+  });
 
-  </script>
+  // ask parent for client url
+  window.parent.postMessage({ requestClientUrl: true }, "*");
+</script>
+
 </body>
 </html>
