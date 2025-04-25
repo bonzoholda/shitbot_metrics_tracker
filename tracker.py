@@ -4,7 +4,6 @@ import sqlite3
 from datetime import datetime
 import asyncio
 from fastapi import FastAPI, HTTPException, Request
-from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 
 # Paths and DB initialization
@@ -104,10 +103,68 @@ async def get_client_data(request: Request):
     except sqlite3.Error as e:
         raise HTTPException(status_code=500, detail=f"Database error: {e}")
 
+# Track portfolio data from all registered clients periodically
+async def track_loop():
+    while True:
+        try:
+            # Get registered clients from the clients DB
+            conn = get_clients_connection()
+            c = conn.cursor()
+            c.execute("SELECT url FROM clients")
+            urls = [row[0] for row in c.fetchall()]
+            conn.close()
+
+            tasks = [fetch_stats(url) for url in urls]
+            await asyncio.gather(*tasks)
+        except Exception as e:
+            print(f"[Tracker Error] {e}")
+        await asyncio.sleep(60)  # Run every minute
+
+# Fetch stats from a client's signal URL and log them in the metrics DB
+async def fetch_stats(url: str):
+    try:
+        async with httpx.AsyncClient(timeout=10) as client:
+            print(f"Fetching stats from {url}/api/signal")  # Debugging
+            res = await client.get(f"{url}/api/signal")
+            if res.status_code == 200:
+                data = res.json()
+                print(f"Fetched data: {data}")  # Debugging
+                log_to_metrics_db({
+                    "wallet": data.get("account_wallet"),
+                    "timestamp": datetime.utcnow().isoformat(),
+                    "portfolio_value": data.get("portfolio_value"),
+                    "usdt_balance": data.get("usdt_balance"),
+                    "wmatic_balance": data.get("wmatic_balance")
+                })
+            else:
+                print(f"[{url}] Error: {res.status_code}")
+    except Exception as e:
+        print(f"[{url}] Failed: {e}")
+
+# Log fetched stats into the portfolio_log table of metrics DB
+def log_to_metrics_db(data):
+    print(f"Logging data to DB: {data}")  # Debugging
+    try:
+        conn = get_metrics_connection()
+        c = conn.cursor()
+        c.execute("""
+            INSERT INTO portfolio_log (wallet, timestamp, portfolio_value, usdt_balance, wmatic_balance)
+            VALUES (?, ?, ?, ?, ?)
+        """, (
+            data['wallet'],
+            data['timestamp'],
+            data['portfolio_value'],
+            data['usdt_balance'],
+            data['wmatic_balance']
+        ))
+        conn.commit()
+        conn.close()
+    except Exception as e:
+        print(f"[DB Error] Failed to insert data: {e}")
+
 # Initialize database when app starts
 @app.on_event("startup")
 async def start_tracking():
     print("Initializing databases...")  # Debugging
     init_clients_db()  # Initialize the clients DB
-    asyncio.create_task(track_loop())
-
+    asyncio.create_task(track_loop())  # Start the periodic tracking loop
