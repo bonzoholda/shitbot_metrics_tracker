@@ -5,12 +5,22 @@ from datetime import datetime
 import asyncio
 from fastapi import FastAPI, HTTPException, Request
 from pydantic import BaseModel
+from fastapi.middleware.cors import CORSMiddleware
 
 # Paths and DB initialization
 DB_PATH = os.getenv("DATABASE_PATH", "/data/metrics.db")  # Original metrics DB
 CLIENT_DB_PATH = os.getenv("CLIENT_DATABASE_PATH", "/data/clients.db")  # New clients DB
 
 app = FastAPI()
+
+# Allow specific origins for CORS
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["https://shitbotmetricstracker-production.up.railway.app"],  # Frontend URL
+    allow_credentials=True,
+    allow_methods=["*"],  # Allows all methods (GET, POST, etc.)
+    allow_headers=["*"],  # Allows all headers
+)
 
 # Function to get a connection for the metrics DB (portfolio_log)
 def get_metrics_connection():
