@@ -18,9 +18,15 @@
     <h1 class="text-4xl font-extrabold text-green-400">📈 ShitBot Portfolio Tracker</h1>
     <p class="text-zinc-400">Auto-tracking based on your dashboard URL.</p>
 
-    <!-- Registration Button -->
+    <!-- Registration Box -->
     <div id="registerBox" class="hidden space-y-4">
       <p class="text-zinc-400">You're not registered for tracking yet.</p>
+      <input
+        id="clientUrlInput"
+        type="text"
+        class="w-full p-3 rounded-lg border border-zinc-600 bg-zinc-800 text-white"
+        placeholder="Enter your dashboard URL"
+      />
       <button
         id="registerBtn"
         class="bg-green-500 hover:bg-green-400 text-black font-bold py-3 px-6 rounded-xl"
@@ -140,7 +146,12 @@
 
     // Handle registration
     document.getElementById("registerBtn").addEventListener("click", async () => {
-      const url = document.referrer;
+      const url = document.getElementById("clientUrlInput").value;
+      if (!url) {
+        alert("Please enter a valid URL.");
+        return;
+      }
+
       const res = await fetch("/api/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
