@@ -168,9 +168,20 @@
         document.getElementById('registerBox').classList.add('hidden');
         fetchPortfolioData(url);
       } else {
-        console.error("Failed to register:", res.status);
-        alert("Failed to register. Try again later.");
+        const errorJson = await res.json();
+        console.warn("Register response:", errorJson.detail);
+      
+        // Allow fallback if client is already registered
+        if (errorJson.detail === "Client already registered.") {
+          console.log("Client already registered, continuing...");
+          document.getElementById('registerBox').classList.add('hidden');
+          fetchPortfolioData(url);
+        } else {
+          console.error("Failed to register:", res.status);
+          alert("Failed to register. Try again later.");
+        }
       }
+
     });
   
     // Start logic
