@@ -14,26 +14,8 @@
 </head>
 <body class="bg-zinc-900 text-white min-h-screen flex items-center justify-center px-4 py-8">
   <div class="w-full max-w-4xl space-y-6 text-center">
-
     <h1 class="text-4xl font-extrabold text-green-400">📈 ShitBot Portfolio Tracker</h1>
     <p class="text-zinc-400">Auto-tracking based on your dashboard URL.</p>
-
-    <!-- Registration Box -->
-    <div id="registerBox" class="space-y-4 hidden">
-      <p class="text-zinc-400">You're not registered for tracking yet. Please enter your dashboard URL:</p>
-      <input
-        id="clientUrlInput"
-        type="text"
-        class="w-full p-3 rounded-lg border border-zinc-600 bg-zinc-800 text-white"
-        placeholder="Enter your dashboard URL"
-      />
-      <button
-        id="registerBtn"
-        class="bg-green-500 hover:bg-green-400 text-black font-bold py-3 px-6 rounded-xl"
-      >
-        ✅ Register Client for Tracking
-      </button>
-    </div>
 
     <!-- Chart Section -->
     <div id="chartContainer" class="bg-zinc-800 p-6 rounded-2xl shadow-xl hidden">
@@ -43,41 +25,18 @@
   </div>
 
   <script>
+    const TRACKER_API_BASE = "https://tracker-worker.up.railway.app";
     let chartInstance = null;
     let refreshInterval = null;
-    const TRACKER_API_BASE = "https://tracker-worker.up.railway.app";
-
-    function getClientUrl() {
-      const urlParams = new URLSearchParams(window.location.search);
-      const queryClient = urlParams.get("client");
-      if (queryClient) return queryClient;
-
-      const referrer = document.referrer;
-      if (referrer && referrer.includes("shitbotdextrader-production")) {
-        return referrer.replace(/\/$/, ''); // strip trailing slash
-      }
-
-      return null;
-    }
 
     async function fetchPortfolioData(clientUrl) {
       try {
         const encoded = encodeURIComponent(clientUrl);
         const res = await fetch(`${TRACKER_API_BASE}/api/referrer?client=${encoded}`);
+        if (!res.ok) throw new Error("Failed to fetch portfolio data");
 
-        if (res.status === 404) {
-          document.getElementById('registerBox').classList.remove('hidden');
-          return;
-        }
-
-        const json = await res.json();
-        const data = json.data;
-        const baseline = json.baseline;
-
-        if (!data || data.length === 0) {
-          alert("No portfolio data yet. Wait for the next update cycle.");
-          return;
-        }
+        const { data, baseline } = await res.json();
+        if (!data || data.length === 0) return;
 
         const seriesData = data.map(d => ({
           x: new Date(d.timestamp).getTime(),
@@ -89,7 +48,6 @@
         const latestTime = new Date(data[data.length - 1].timestamp).getTime();
 
         if (chartInstance) chartInstance.destroy();
-
         chartInstance = new ApexCharts(document.querySelector("#chart"), {
           chart: {
             type: 'area',
@@ -152,46 +110,22 @@
         refreshInterval = setInterval(() => fetchPortfolioData(clientUrl), 60000);
 
       } catch (err) {
-        console.error("Error:", err);
-        alert("Failed to load portfolio data.");
+        console.error("Fetch error:", err);
       }
     }
 
-    document.getElementById("registerBtn").addEventListener("click", async () => {
-      const url = document.getElementById("clientUrlInput").value;
-      if (!url) {
-        alert("Please enter a valid URL.");
-        return;
-      }
+    // Use postMessage to securely get parent URL
+    window.addEventListener("message", (event) => {
+      if (!event.origin.includes("shitbotdextrader")) return;
 
-      const res = await fetch(`${TRACKER_API_BASE}/api/register`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ url })
-      });
-
-      if (res.ok) {
-        document.getElementById('registerBox').classList.add('hidden');
-        fetchPortfolioData(url);
-      } else {
-        const errorJson = await res.json();
-        if (errorJson.detail === "Client already registered.") {
-          document.getElementById('registerBox').classList.add('hidden');
-          fetchPortfolioData(url);
-        } else {
-          alert("Failed to register. Try again later.");
-        }
+      const clientUrl = event.data.clientUrl?.replace(/\/$/, '');
+      if (clientUrl) {
+        fetchPortfolioData(clientUrl);
       }
     });
 
-    window.addEventListener("DOMContentLoaded", () => {
-      const clientUrl = getClientUrl();
-      if (!clientUrl) {
-        alert("This tracker must be embedded from a valid dashboard.");
-        return;
-      }
-      fetchPortfolioData(clientUrl);
-    });
+    // Request the parent to send its URL
+    window.parent.postMessage({ requestClientUrl: true }, "*");
   </script>
 </body>
 </html>
