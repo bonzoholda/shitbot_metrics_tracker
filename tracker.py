@@ -3,7 +3,7 @@ import httpx
 import sqlite3
 from datetime import datetime
 import asyncio
-from fastapi import FastAPI, HTTPException, Request
+from fastapi import FastAPI, HTTPException, Request, Query
 from pydantic import BaseModel
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -87,8 +87,8 @@ async def register_client(client: Client):
 from urllib.parse import urlparse
 
 @app.get("/api/referrer")
-async def get_client_data(request: Request):
-    referrer = request.headers.get('Referer')
+async def get_client_data(client: str = Query(...)):
+    referrer = client.rstrip("/")
     print(f"Raw referrer: {referrer}")  # 🔍 Debug
 
     if not referrer:
