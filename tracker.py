@@ -30,7 +30,7 @@ def get_metrics_connection():
 # Function to get a connection for the clients DB
 def get_clients_connection():
     os.makedirs(os.path.dirname(CLIENT_DB_PATH), exist_ok=True)
-    return sqlite3.connect(CLIENT_DB_PATH)
+    return sqlite3.connect(CLIENT_DB_PATH, check_same_thread=False)
 
 # Function to initialize the clients DB with a default client URL
 def init_clients_db():
