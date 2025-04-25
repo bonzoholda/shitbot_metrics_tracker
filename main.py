@@ -5,15 +5,14 @@ import httpx
 import os
 import logging
 
-from tracker import app as tracker_app  # ✅ Import the FastAPI app from tracker.py
+from tracker import router as tracker_router  # ✅ Import the router now
 
 app = FastAPI()
 templates = Jinja2Templates(directory="templates")
 
-# ✅ Mount tracker routes at /api
-app.mount("/api", tracker_app)
+# ✅ Include /api routes from tracker.py
+app.include_router(tracker_router, prefix="/api")
 
-# ✅ Tracker service URL (should point to deployed tracker instance)
 TRACKER_API_URL = os.getenv("TRACKER_API_URL", "https://tracker-worker.up.railway.app")
 
 logger = logging.getLogger(__name__)
