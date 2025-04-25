@@ -89,36 +89,39 @@ from urllib.parse import urlparse
 @app.get("/api/referrer")
 async def get_client_data(client: str = Query(...)):
     referrer = client.rstrip("/")
-    print(f"Raw referrer: {referrer}")  # 🔍 Debug
+    print(f"Raw referrer: {referrer}")
 
     if not referrer:
         raise HTTPException(status_code=400, detail="Referrer URL is missing.")
-    
-    referrer = referrer.rstrip('/')
-    print(f"Normalized referrer: {referrer}")  # 🔍 Debug
 
     try:
-        # Check if referrer URL exists in the 'clients' table
+        # Step 1: Look up wallet for this client
         conn = get_clients_connection()
         c = conn.cursor()
-
-        # Print all clients for comparison
         print("Clients in DB:")
         for row in c.execute("SELECT url FROM clients"):
             print(f"- {row[0]}")
 
-        c.execute("SELECT * FROM clients WHERE url = ?", (referrer,))
-        client = c.fetchone()
-        if client is None:
-            print(f"Referrer {referrer} not found in clients DB")  # 🔍 Debug
+        c.execute("SELECT wallet FROM clients WHERE url = ?", (referrer,))
+        row = c.fetchone()
+        if not row:
             raise HTTPException(status_code=404, detail="Client not registered.")
 
-        # Fetch portfolio data
+        wallet = row[0]  # ✅ Use the actual wallet address
+        print(f"Resolved wallet: {wallet}")
+
+        # Step 2: Fetch portfolio data from that wallet
         conn = get_metrics_connection()
         c = conn.cursor()
-        c.execute("SELECT portfolio_value FROM portfolio_log WHERE wallet = ? ORDER BY timestamp ASC LIMIT 1", (referrer,))
-        row = c.fetchone()
-        baseline = row[0] if row else 1
+
+        c.execute("""
+            SELECT portfolio_value FROM portfolio_log
+            WHERE wallet = ?
+            ORDER BY timestamp ASC
+            LIMIT 1
+        """, (wallet,))
+        baseline_row = c.fetchone()
+        baseline = baseline_row[0] if baseline_row else 1
 
         c.execute(""" 
             SELECT timestamp, portfolio_value
@@ -126,7 +129,7 @@ async def get_client_data(client: str = Query(...)):
             WHERE wallet = ? 
             ORDER BY timestamp DESC 
             LIMIT 1440
-        """, (referrer,))
+        """, (wallet,))
         rows = c.fetchall()
         conn.close()
 
