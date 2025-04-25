@@ -47,6 +47,21 @@
     let refreshInterval = null;
     const TRACKER_API_BASE = "https://tracker-worker.up.railway.app";
 
+    function getClientUrl() {
+      const urlParams = new URLSearchParams(window.location.search);
+      const queryClient = urlParams.get("client");
+      if (queryClient) return queryClient;
+    
+      const referrer = document.referrer;
+      if (referrer && referrer.includes("shitbotdextrader-production")) {
+        return referrer.split("?")[0]; // Strip query params
+      }
+    
+      return null;
+    }
+
+
+    
     async function fetchPortfolioData(url) {
       try {
         const res = await fetch(`${TRACKER_API_BASE}/api/referrer?client=${encodeURIComponent(url)}`);
@@ -173,13 +188,14 @@
 
     // Startup logic: detect iframe origin
     window.addEventListener("DOMContentLoaded", () => {
-      const referrer = document.referrer.replace(/\/$/, '');
-      if (!referrer) {
-        alert("This tracker is intended to be embedded via iframe in the dashboard.");
+      const clientUrl = getClientUrl();
+      if (!clientUrl) {
+        alert("This tracker must be embedded from a valid dashboard URL.");
         return;
       }
-      fetchPortfolioData(referrer);
+      fetchPortfolioData(clientUrl);
     });
+
   </script>
 </body>
 </html>
