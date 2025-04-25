@@ -65,7 +65,7 @@ async def register_client(client: Client):
     
     try:
         # Open the database connection and ensure it's closed automatically
-        with sqlite3.connect("your_database.db") as conn:
+        with get_clients_connection() as conn:
             c = conn.cursor()
             c.execute("INSERT INTO clients (url) VALUES (?)", (client.url,))
             conn.commit()
