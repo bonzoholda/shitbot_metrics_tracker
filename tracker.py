@@ -3,7 +3,7 @@ import httpx
 import sqlite3
 from datetime import datetime
 import asyncio
-from fastapi import FastAPI, HTTPException, Request, Query
+from fastapi import FastAPI, HTTPException, Request, Query, APIRouter
 from pydantic import BaseModel
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -12,6 +12,7 @@ DB_PATH = os.getenv("DATABASE_PATH", "/data/metrics.db")  # Original metrics DB
 CLIENT_DB_PATH = os.getenv("CLIENT_DATABASE_PATH", "/data/clients.db")  # New clients DB
 
 app = FastAPI()
+router = APIRouter()
 
 # Allow specific origins for CORS
 app.add_middleware(
@@ -86,7 +87,7 @@ async def register_client(client: Client):
 # Fetch portfolio data for a registered client
 from urllib.parse import urlparse
 
-@app.get("/api/referrer")
+@router.get("/referrer")
 async def get_client_data(client: str = Query(...)):
     referrer = client.rstrip("/")
     print(f"Raw referrer: {referrer}")
