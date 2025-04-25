@@ -45,10 +45,11 @@
   <script>
     let chartInstance = null;
     let refreshInterval = null;
+    const TRACKER_API_BASE = "https://shitbot-tracker-worker.up.railway.app";
 
     async function fetchPortfolioData(url) {
       try {
-        const res = await fetch(`/api/referrer`, {
+        const res = await fetch(`${TRACKER_API_BASE}/api/referrer`, {
           headers: { "Referer": url }
         });
 
@@ -152,7 +153,7 @@
         return;
       }
 
-      const res = await fetch("/api/register", {
+      const res = await fetch("${TRACKER_API_BASE}/api/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ url })
