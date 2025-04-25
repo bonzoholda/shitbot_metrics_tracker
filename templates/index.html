@@ -7,30 +7,22 @@
   <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
-    body {
-      font-family: 'Inter', sans-serif;
-    }
+    body { font-family: 'Inter', sans-serif; }
   </style>
 </head>
 <body class="bg-zinc-900 text-white min-h-screen flex items-center justify-center px-4 py-8">
   <div class="w-full max-w-4xl space-y-6 text-center">
-
     <h1 class="text-4xl font-extrabold text-green-400">📈 ShitBot Portfolio Tracker</h1>
     <p class="text-zinc-400">Auto-tracking based on your dashboard URL.</p>
 
-    <!-- Registration Box: Input for Manual URL Entry -->
-    <div id="registerBox" class="space-y-4">
+    <!-- Registration Box -->
+    <div id="registerBox" class="space-y-4 hidden">
       <p class="text-zinc-400">You're not registered for tracking yet. Please enter your dashboard URL:</p>
-      <input
-        id="clientUrlInput"
-        type="text"
-        class="w-full p-3 rounded-lg border border-zinc-600 bg-zinc-800 text-white"
-        placeholder="Enter your dashboard URL"
-      />
-      <button
-        id="registerBtn"
-        class="bg-green-500 hover:bg-green-400 text-black font-bold py-3 px-6 rounded-xl"
-      >
+      <input id="clientUrlInput" type="text"
+             class="w-full p-3 rounded-lg border border-zinc-600 bg-zinc-800 text-white"
+             placeholder="Enter your dashboard URL"/>
+      <button id="registerBtn"
+              class="bg-green-500 hover:bg-green-400 text-black font-bold py-3 px-6 rounded-xl">
         ✅ Register Client for Tracking
       </button>
     </div>
@@ -47,12 +39,14 @@
     let refreshInterval = null;
     const TRACKER_API_BASE = "https://tracker-worker.up.railway.app";
 
-    async function fetchPortfolioData(url) {
-      try {
-        const res = await fetch(${TRACKER_API_BASE}/api/referrer, {
-          headers: { "Referer": url }
-        });
+    function getQueryParam(param) {
+      const urlParams = new URLSearchParams(window.location.search);
+      return urlParams.get(param);
+    }
 
+    async function fetchPortfolioData(clientUrl) {
+      try {
+        const res = await fetch(`${TRACKER_API_BASE}/api/referrer?client=${encodeURIComponent(clientUrl)}`);
         if (res.status === 404) {
           document.getElementById('registerBox').classList.remove('hidden');
           return;
@@ -99,7 +93,7 @@
               label: {
                 borderColor: '#00FF85',
                 style: { background: '#00FF85', color: '#000', fontWeight: 'bold' },
-                text: Change: ${pctChange}%,
+                text: `Change: ${pctChange}%`,
                 textAnchor: 'end',
                 offsetX: -10
               }
@@ -118,10 +112,7 @@
             }
           },
           colors: ['#00FF85'],
-          stroke: {
-            width: 0.5,
-            curve: 'smooth'
-          }
+          stroke: { width: 0.5, curve: 'smooth' }
         });
 
         document.getElementById('chartContainer').classList.remove('hidden');
@@ -133,54 +124,49 @@
         const days = Math.floor(mins / (60 * 24));
         const hours = Math.floor((mins % (60 * 24)) / 60);
         const minutes = mins % 60;
-        document.getElementById('duration').textContent = 
-          Duration of tracking: ${days} days ${hours} hrs ${minutes} mins;
+        document.getElementById('duration').textContent =
+          `Duration of tracking: ${days} days ${hours} hrs ${minutes} mins`;
 
         if (refreshInterval) clearInterval(refreshInterval);
-        refreshInterval = setInterval(() => fetchPortfolioData(url), 60000);
+        refreshInterval = setInterval(() => fetchPortfolioData(clientUrl), 60000);
 
       } catch (err) {
-        console.error("Error:", err);
+        console.error("Error fetching data:", err);
         alert("Failed to load portfolio data.");
       }
     }
 
-    // Handle registration
     document.getElementById("registerBtn").addEventListener("click", async () => {
-      console.log("Register button clicked"); // DEBUG LOG
-    
-      const url = document.getElementById("clientUrlInput").value;
-      if (!url) {
-        alert("Please enter a valid URL.");
-        return;
-      }
-    
-      console.log("Sending POST to:", ${TRACKER_API_BASE}/api/register);
-    
-      const res = await fetch(${TRACKER_API_BASE}/api/register, {
+      const url = document.getElementById("clientUrlInput").value.trim();
+      if (!url) return alert("Please enter a valid URL.");
+
+      const res = await fetch(`${TRACKER_API_BASE}/api/register`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ url })
       });
-    
+
       if (res.ok) {
-        console.log("Client registered successfully");
         document.getElementById('registerBox').classList.add('hidden');
         fetchPortfolioData(url);
       } else {
-        console.error("Failed to register:", res.status);
-        alert("Failed to register. Try again later.");
+        const err = await res.json();
+        if (err.detail === "Client already registered.") {
+          document.getElementById('registerBox').classList.add('hidden');
+          fetchPortfolioData(url);
+        } else {
+          alert("Failed to register. Try again later.");
+        }
       }
     });
 
-    // Start logic
     window.addEventListener("DOMContentLoaded", () => {
-      const referrer = document.referrer;
-      if (!referrer) {
-        alert("This tracker is intended to be embedded via iframe in the dashboard.");
+      const clientUrl = getQueryParam("client");
+      if (!clientUrl) {
+        alert("This tracker is intended to be embedded with ?client=... in the URL.");
         return;
       }
-      fetchPortfolioData(referrer);
+      fetchPortfolioData(clientUrl);
     });
   </script>
 </body>
