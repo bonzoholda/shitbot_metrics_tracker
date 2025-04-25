@@ -153,7 +153,7 @@
         return;
       }
 
-      const res = await fetch("${TRACKER_API_BASE}/api/register", {
+      const res = await fetch(`${TRACKER_API_BASE}/api/register`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ url })
