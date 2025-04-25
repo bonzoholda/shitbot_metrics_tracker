@@ -18,9 +18,15 @@
     <h1 class="text-4xl font-extrabold text-green-400">📈 ShitBot Portfolio Tracker</h1>
     <p class="text-zinc-400">Auto-tracking based on your dashboard URL.</p>
 
-    <!-- Registration Button -->
-    <div id="registerBox" class="hidden space-y-4">
-      <p class="text-zinc-400">You're not registered for tracking yet.</p>
+    <!-- Registration Box: Input for Manual URL Entry -->
+    <div id="registerBox" class="space-y-4">
+      <p class="text-zinc-400">You're not registered for tracking yet. Please enter your dashboard URL:</p>
+      <input
+        id="clientUrlInput"
+        type="text"
+        class="w-full p-3 rounded-lg border border-zinc-600 bg-zinc-800 text-white"
+        placeholder="Enter your dashboard URL"
+      />
       <button
         id="registerBtn"
         class="bg-green-500 hover:bg-green-400 text-black font-bold py-3 px-6 rounded-xl"
@@ -39,10 +45,11 @@
   <script>
     let chartInstance = null;
     let refreshInterval = null;
+    const TRACKER_API_BASE = "https://tracker-worker.up.railway.app";
 
     async function fetchPortfolioData(url) {
       try {
-        const res = await fetch(`/api/referrer`, {
+        const res = await fetch(${TRACKER_API_BASE}/api/referrer, {
           headers: { "Referer": url }
         });
 
@@ -92,7 +99,7 @@
               label: {
                 borderColor: '#00FF85',
                 style: { background: '#00FF85', color: '#000', fontWeight: 'bold' },
-                text: `Change: ${pctChange}%`,
+                text: Change: ${pctChange}%,
                 textAnchor: 'end',
                 offsetX: -10
               }
@@ -127,7 +134,7 @@
         const hours = Math.floor((mins % (60 * 24)) / 60);
         const minutes = mins % 60;
         document.getElementById('duration').textContent = 
-          `Duration of tracking: ${days} days ${hours} hrs ${minutes} mins`;
+          Duration of tracking: ${days} days ${hours} hrs ${minutes} mins;
 
         if (refreshInterval) clearInterval(refreshInterval);
         refreshInterval = setInterval(() => fetchPortfolioData(url), 60000);
@@ -140,17 +147,28 @@
 
     // Handle registration
     document.getElementById("registerBtn").addEventListener("click", async () => {
-      const url = document.referrer;
-      const res = await fetch("/api/register", {
+      console.log("Register button clicked"); // DEBUG LOG
+    
+      const url = document.getElementById("clientUrlInput").value;
+      if (!url) {
+        alert("Please enter a valid URL.");
+        return;
+      }
+    
+      console.log("Sending POST to:", ${TRACKER_API_BASE}/api/register);
+    
+      const res = await fetch(${TRACKER_API_BASE}/api/register, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ url })
       });
-
+    
       if (res.ok) {
+        console.log("Client registered successfully");
         document.getElementById('registerBox').classList.add('hidden');
         fetchPortfolioData(url);
       } else {
+        console.error("Failed to register:", res.status);
         alert("Failed to register. Try again later.");
       }
     });
