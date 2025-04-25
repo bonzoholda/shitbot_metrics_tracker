@@ -115,17 +115,19 @@
     }
 
     // Use postMessage to securely get parent URL
+    let clientUrl = null;
+    
     window.addEventListener("message", (event) => {
-      if (!event.origin.includes("shitbotdextrader")) return;
-
-      const clientUrl = event.data.clientUrl?.replace(/\/$/, '');
-      if (clientUrl) {
+      if (event.data.clientUrl) {
+        clientUrl = event.data.clientUrl;
+        console.log("📦 Received client URL from parent:", clientUrl);
         fetchPortfolioData(clientUrl);
       }
     });
-
-    // Request the parent to send its URL
+    
+    // Request client URL from parent
     window.parent.postMessage({ requestClientUrl: true }, "*");
+
   </script>
 </body>
 </html>
