@@ -186,7 +186,11 @@
   
     // Start logic
     window.addEventListener("DOMContentLoaded", () => {
-      const referrer = document.referrer;
+
+    // Simulate client embedding by hardcoding the referrer
+    const referrer = "https://shitbotdextrader-production.up.railway.app";
+    // const referrer = document.referrer.replace(/\/$/, '');
+      
       if (!referrer) {
         alert("This tracker is intended to be embedded via iframe in the dashboard.");
         return;
