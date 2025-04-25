@@ -51,17 +51,21 @@ class Client(BaseModel):
 
 @app.post("/api/register")
 async def register_client(client: Client):
+    print(f"Attempting to register client: {client.url}")  # Debug log to see what URL is being attempted to register
+    
     try:
         conn = get_clients_connection()
         c = conn.cursor()
         c.execute("INSERT INTO clients (url) VALUES (?)", (client.url,))
         conn.commit()
         conn.close()
-        print(f"Client registered: {client.url}")  # Debugging
+        print(f"Client {client.url} registered successfully.")  # Debug log when registration is successful
         return {"message": "Client registered successfully."}
     except sqlite3.IntegrityError:
+        print(f"Client {client.url} already registered.")  # Debug log if client already exists
         raise HTTPException(status_code=400, detail="Client already registered.")
     except Exception as e:
+        print(f"[Error] {e}")  # Log any other errors
         raise HTTPException(status_code=500, detail=f"Internal error: {e}")
 
 # Fetch portfolio data for a registered client
