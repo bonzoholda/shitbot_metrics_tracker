@@ -84,12 +84,17 @@ async def register_client(client: Client):
         raise HTTPException(status_code=500, detail=f"Internal error: {e}")
 
 # Fetch portfolio data for a registered client
+from urllib.parse import urlparse
+
 @app.get("/api/referrer")
 async def get_client_data(request: Request):
     referrer = request.headers.get('Referer')
     if not referrer:
         raise HTTPException(status_code=400, detail="Referrer URL is missing.")
     
+    # Remove trailing slash from referrer if present
+    referrer = referrer.rstrip('/')
+
     try:
         # Check if referrer URL exists in the 'clients' table
         conn = get_clients_connection()
