@@ -147,6 +147,21 @@ def log_to_metrics_db(data):
     try:
         conn = get_metrics_connection()
         c = conn.cursor()
+
+        # Ensure that the portfolio_log table exists
+        c.execute("""
+            CREATE TABLE IF NOT EXISTS portfolio_log (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                wallet TEXT NOT NULL,
+                timestamp TEXT NOT NULL,
+                portfolio_value REAL NOT NULL,
+                usdt_balance REAL,
+                wmatic_balance REAL,
+                pol_balance REAL
+            )
+        """)
+
+        # Insert the data into portfolio_log
         c.execute("""
             INSERT INTO portfolio_log (wallet, timestamp, portfolio_value, usdt_balance, wmatic_balance)
             VALUES (?, ?, ?, ?, ?)
@@ -161,6 +176,7 @@ def log_to_metrics_db(data):
         conn.close()
     except Exception as e:
         print(f"[DB Error] Failed to insert data: {e}")
+
 
 # Initialize database when app starts
 @app.on_event("startup")
