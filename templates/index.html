@@ -13,13 +13,24 @@
   </style>
 </head>
 <body class="bg-zinc-900 text-white min-h-screen flex items-center justify-center px-4 py-8">
-  <div class="w-full max-w-4xl space-y-6">
-    <div class="text-center">
-      <h1 class="text-3xl font-bold text-green-400">📈 ShitBot Portfolio Tracker</h1>
-      <p class="text-zinc-400 text-sm">Tracking real-time portfolio metrics...</p>
+  <div class="w-full max-w-4xl space-y-6 text-center">
+
+    <h1 class="text-4xl font-extrabold text-green-400">📈 ShitBot Portfolio Tracker</h1>
+    <p class="text-zinc-400">Auto-tracking based on your dashboard URL.</p>
+
+    <!-- Registration Button -->
+    <div id="registerBox" class="hidden space-y-4">
+      <p class="text-zinc-400">You're not registered for tracking yet.</p>
+      <button
+        id="registerBtn"
+        class="bg-green-500 hover:bg-green-400 text-black font-bold py-3 px-6 rounded-xl"
+      >
+        ✅ Register Client for Tracking
+      </button>
     </div>
 
-    <div id="chartContainer" class="bg-zinc-800 p-6 rounded-2xl shadow-xl w-full hidden">
+    <!-- Chart Section -->
+    <div id="chartContainer" class="bg-zinc-800 p-6 rounded-2xl shadow-xl hidden">
       <div id="chart" class="w-full h-80"></div>
       <div id="duration" class="text-sm text-zinc-400 mt-4 text-center"></div>
     </div>
@@ -29,16 +40,23 @@
     let chartInstance = null;
     let refreshInterval = null;
 
-    async function fetchAndDraw(referrer) {
+    async function fetchPortfolioData(url) {
       try {
-        const encoded = encodeURIComponent(referrer);
-        const res = await fetch(`/api/referrer?client=${encoded}`);
+        const res = await fetch(`/api/referrer`, {
+          headers: { "Referer": url }
+        });
+
+        if (res.status === 404) {
+          document.getElementById('registerBox').classList.remove('hidden');
+          return;
+        }
+
         const json = await res.json();
         const data = json.data;
         const baseline = json.baseline;
 
         if (!data || data.length === 0) {
-          alert("No portfolio data yet...");
+          alert("No portfolio data yet. Wait for the next update cycle.");
           return;
         }
 
@@ -53,7 +71,7 @@
 
         if (chartInstance) chartInstance.destroy();
 
-        const options = {
+        chartInstance = new ApexCharts(document.querySelector("#chart"), {
           chart: {
             type: 'area',
             height: 320,
@@ -61,35 +79,22 @@
             foreColor: '#ccc',
             toolbar: { show: false }
           },
-          series: [{
-            name: "Portfolio Value (USDT)",
-            data: seriesData
-          }],
-          xaxis: {
-            type: 'datetime',
-            labels: { style: { colors: '#aaa' } }
-          },
-          yaxis: {
-            labels: { style: { colors: '#aaa' } }
-          },
-          dataLabels: { enabled: false },
+          series: [{ name: "Portfolio Value (USDT)", data: seriesData }],
+          xaxis: { type: 'datetime', labels: { style: { colors: '#aaa' } } },
+          yaxis: { labels: { style: { colors: '#aaa' } } },
           tooltip: { x: { format: 'dd MMM HH:mm' } },
+          dataLabels: { enabled: false },
           annotations: {
             points: [{
               x: latestTime,
               y: latest,
-              marker: {
-                size: 6,
-                fillColor: '#00FF85'
-              },
+              marker: { size: 6, fillColor: '#00FF85' },
               label: {
                 borderColor: '#00FF85',
-                style: {
-                  background: '#00FF85',
-                  color: '#000',
-                  fontWeight: 'bold'
-                },
-                text: `Change: ${pctChange}%`
+                style: { background: '#00FF85', color: '#000', fontWeight: 'bold' },
+                text: `Change: ${pctChange}%`,
+                textAnchor: 'end',
+                offsetX: -10
               }
             }]
           },
@@ -110,39 +115,54 @@
             width: 0.5,
             curve: 'smooth'
           }
-        };
+        });
 
         document.getElementById('chartContainer').classList.remove('hidden');
-        chartInstance = new ApexCharts(document.querySelector("#chart"), options);
         chartInstance.render();
 
         const start = new Date(data[0].timestamp);
         const end = new Date(data[data.length - 1].timestamp);
-        const diffMs = end - start;
-        const diffMins = Math.floor(diffMs / 60000);
-        const days = Math.floor(diffMins / (60 * 24));
-        const hours = Math.floor((diffMins % (60 * 24)) / 60);
-        const minutes = diffMins % 60;
-
+        const mins = Math.floor((end - start) / 60000);
+        const days = Math.floor(mins / (60 * 24));
+        const hours = Math.floor((mins % (60 * 24)) / 60);
+        const minutes = mins % 60;
         document.getElementById('duration').textContent = 
           `Duration of tracking: ${days} days ${hours} hrs ${minutes} mins`;
 
-      } catch (error) {
-        console.error("Error:", error);
-        alert("Failed to load data.");
+        if (refreshInterval) clearInterval(refreshInterval);
+        refreshInterval = setInterval(() => fetchPortfolioData(url), 60000);
+
+      } catch (err) {
+        console.error("Error:", err);
+        alert("Failed to load portfolio data.");
       }
     }
 
-    // 👀 Auto-detect referrer from iframe parent
-    window.addEventListener('DOMContentLoaded', () => {
-      const referrer = document.referrer;
-      if (referrer) {
-        console.log("📦 Received client URL from parent:", referrer);
-        fetchAndDraw(referrer);
-        refreshInterval = setInterval(() => fetchAndDraw(referrer), 60000);
+    // Handle registration
+    document.getElementById("registerBtn").addEventListener("click", async () => {
+      const url = document.referrer;
+      const res = await fetch("/api/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ url })
+      });
+
+      if (res.ok) {
+        document.getElementById('registerBox').classList.add('hidden');
+        fetchPortfolioData(url);
       } else {
-        alert("Missing referrer: must be used in iframe.");
+        alert("Failed to register. Try again later.");
       }
+    });
+
+    // Start logic
+    window.addEventListener("DOMContentLoaded", () => {
+      const referrer = document.referrer;
+      if (!referrer) {
+        alert("This tracker is intended to be embedded via iframe in the dashboard.");
+        return;
+      }
+      fetchPortfolioData(referrer);
     });
   </script>
 </body>
