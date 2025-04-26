@@ -137,7 +137,7 @@
       }
     
       window.addEventListener("DOMContentLoaded", () => {
-        const wallet = getQueryParam("account_wallet");
+        const wallet = getQueryParam("wallet");
         if (!wallet) {
           alert("This tracker requires a wallet address in the URL as a query parameter, e.g., ?wallet=0x123...");
           return;
