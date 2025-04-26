@@ -48,27 +48,23 @@
 
   <!-- Script -->
 	<script>
-	  window.addEventListener('DOMContentLoaded', () => {
-		const urlParams = new URLSearchParams(window.location.search);
-		const wallet = urlParams.get('wallet');
-
-		if (wallet) {
+	  window.addEventListener('message', (event) => {
+		if (event.data && event.data.wallet) {
 		  const walletInput = document.getElementById('wallet');
 		  if (walletInput) {
-			walletInput.value = wallet.trim();
+			walletInput.value = event.data.wallet.trim();
 			
-			// Now simulate a real button click
+			// Then simulate View Button Click
 			const viewButton = document.querySelector('button[type="submit"]');
 			if (viewButton) {
-			  setTimeout(() => {  // small delay to ensure DOM ready
+			  setTimeout(() => {
 				viewButton.click();
-			  }, 300);  // 300ms delay usually safe
+			  }, 300); // small delay
 			}
 		  }
 		}
 	  });
 	</script>
-
 
 
 	  
