@@ -7,155 +7,180 @@
   <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
-    body { font-family: 'Inter', sans-serif; }
+    body {
+      font-family: 'Inter', sans-serif;
+    }
   </style>
 </head>
 <body class="bg-zinc-900 text-white min-h-screen flex items-center justify-center px-4 py-8">
-  <div class="w-full max-w-4xl space-y-6 text-center">
-    <h1 class="text-4xl font-extrabold text-green-400">📈 ShitBot Portfolio Tracker</h1>
-    <p class="text-zinc-400">Auto-tracking based on your dashboard URL.</p>
-
-    <!-- Registration Box -->
-    <div id="registerBox" class="space-y-4 hidden">
-      <p class="text-zinc-400">You're not registered for tracking yet. Please enter your dashboard URL:</p>
-      <input id="clientUrlInput" type="text"
-             class="w-full p-3 rounded-lg border border-zinc-600 bg-zinc-800 text-white"
-             placeholder="Enter your dashboard URL"/>
-      <button id="registerBtn"
-              class="bg-green-500 hover:bg-green-400 text-black font-bold py-3 px-6 rounded-xl">
-        ✅ Register Client for Tracking
-      </button>
+  <div class="w-full max-w-4xl space-y-6">
+    <!-- Header -->
+    <div class="text-center">
+      <h1 class="text-4xl font-extrabold text-green-400 tracking-tight mb-2">📈 ShitBot Portfolio Tracker</h1>
+      <p class="text-zinc-400">Visualize your trading performance with real-time metrics.</p>
     </div>
+
+    <!-- Wallet Form -->
+    <form id="walletForm" class="bg-zinc-800 p-6 rounded-2xl shadow-lg space-y-4">
+      <label for="wallet" class="block text-left text-sm font-medium text-zinc-300">Wallet Address</label>
+      <input
+        type="text"
+        id="wallet"
+        placeholder="0x..."
+        class="w-full px-4 py-3 rounded-xl bg-zinc-700 text-white focus:outline-none focus:ring-2 focus:ring-green-500"
+        required
+      />
+      <button
+        type="submit"
+        class="w-full bg-green-500 hover:bg-green-400 text-black font-semibold py-3 rounded-xl transition duration-200"
+      >
+        🔍 View Portfolio
+      </button>
+    </form>
 
     <!-- Chart Section -->
     <div id="chartContainer" class="bg-zinc-800 p-6 rounded-2xl shadow-xl hidden">
       <div id="chart" class="w-full h-80"></div>
       <div id="duration" class="text-sm text-zinc-400 mt-4 text-center"></div>
     </div>
+
   </div>
 
-    <script>
-      let chartInstance = null;
-      let refreshInterval = null;
-      const TRACKER_API_BASE = "https://tracker-worker.up.railway.app";
-    
-      function getQueryParam(param) {
-        const urlParams = new URLSearchParams(window.location.search);
-        return urlParams.get(param);
-      }
-    
-      async function fetchPortfolioData(wallet) {
-        try {
-          const res = await fetch(`${TRACKER_API_BASE}/api/referrer?wallet=${encodeURIComponent(wallet)}`);
-          if (res.status === 404) {
-            document.getElementById('registerBox').classList.remove('hidden');
-            return;
-          }
-    
-          const json = await res.json();
-          const data = json.data;
-          const baseline = json.baseline;
-    
-          if (!data || data.length === 0) {
-            alert("No portfolio data yet. Wait for the next update cycle.");
-            return;
-          }
-    
-          const seriesData = data.map(d => ({
-            x: new Date(d.timestamp).getTime(),
-            y: d.value
-          }));
-    
-          const latest = data[data.length - 1].value;
-          const pctChange = (((latest - baseline) / baseline) * 100).toFixed(2);
-          const latestTime = new Date(data[data.length - 1].timestamp).getTime();
-    
-          if (chartInstance) chartInstance.destroy();
-    
-          chartInstance = new ApexCharts(document.querySelector("#chart"), {
-            chart: {
-              type: 'area',
-              height: 320,
-              background: 'transparent',
-              foreColor: '#ccc',
-              toolbar: { show: false }
-            },
-            series: [{ name: "Portfolio Value (USDT)", data: seriesData }],
-            xaxis: { type: 'datetime', labels: { style: { colors: '#aaa' } } },
-            yaxis: { labels: { style: { colors: '#aaa' } } },
-            tooltip: { x: { format: 'dd MMM HH:mm' } },
-            dataLabels: { enabled: false },
-            annotations: {
-              points: [{
-                x: latestTime,
-                y: latest,
-                marker: { size: 6, fillColor: '#00FF85' },
-                label: {
-                  borderColor: '#00FF85',
-                  style: { background: '#00FF85', color: '#000', fontWeight: 'bold' },
-                  text: `Change: ${pctChange}%`,
-                  textAnchor: 'end',
-                  offsetX: -10
-                }
-              }]
-            },
-            fill: {
-              type: 'gradient',
-              gradient: {
-                shade: 'dark',
-                gradientToColors: ['#00FF85'],
-                shadeIntensity: 1,
-                type: 'vertical',
-                opacityFrom: 0.5,
-                opacityTo: 0.1,
-                stops: [0, 100]
-              }
-            },
-            colors: ['#00FF85'],
-            stroke: { width: 0.5, curve: 'smooth' }
-          });
-    
-          document.getElementById('chartContainer').classList.remove('hidden');
-          chartInstance.render();
-    
-          const start = new Date(data[0].timestamp);
-          const end = new Date(data[data.length - 1].timestamp);
-          const mins = Math.floor((end - start) / 60000);
-          const days = Math.floor(mins / (60 * 24));
-          const hours = Math.floor((mins % (60 * 24)) / 60);
-          const minutes = mins % 60;
-          document.getElementById('duration').textContent =
-            `Duration of tracking: ${days} days ${hours} hrs ${minutes} mins`;
-    
-          if (refreshInterval) clearInterval(refreshInterval);
-          refreshInterval = setInterval(() => fetchPortfolioData(wallet), 60000);
-    
-        } catch (err) {
-          console.error("Error fetching data:", err);
-          alert("Failed to load portfolio data.");
-        }
-      }
-    
-      window.addEventListener("DOMContentLoaded", () => {
-        const wallet = getQueryParam("wallet");
-        if (!wallet) {
-          alert("This tracker requires a wallet address in the URL as a query parameter, e.g., ?wallet=0x123...");
+  
+  <!-- Script -->
+  <script>
+    let chartInstance = null;
+    let currentWallet = null;
+    let refreshInterval = null;
+
+    async function fetchAndDraw(wallet) {
+      try {
+        const res = await fetch(/api/user/${wallet});
+        if (!res.ok) throw new Error(Failed to fetch data. Status: ${res.status});
+
+        const json = await res.json();
+        const data = json.data;
+        const baseline = json.baseline;
+
+        if (!data || data.length === 0) {
+          alert("No data found for the specified wallet.");
           return;
         }
-        fetchPortfolioData(wallet);
-      });
 
-      window.addEventListener("message", (event) => {
-        if (event.origin !== "https://shitbotdextrader-production.up.railway.app") return; // Security check
-        const { wallet } = event.data;
-        if (wallet) {
-          fetchPortfolioData(wallet);
+        const seriesData = data.map(d => ({
+          x: new Date(d.timestamp).getTime(), // Ensure correct timestamp handling
+          y: d.value
+        }));
+
+        const latest = data[data.length - 1].value;
+        const baselineValue = baseline;
+        const pctChange = (((latest - baselineValue) / baselineValue) * 100).toFixed(2);
+        const latestTime = new Date(data[data.length - 1].timestamp).getTime();
+
+        if (chartInstance) {
+          chartInstance.destroy();
         }
-      });
 
-      
-    </script>
+        const options = {
+          chart: {
+            type: 'area',
+            height: 320,
+            background: 'transparent',
+            foreColor: '#ccc',
+            toolbar: { show: false }
+          },
+          series: [{
+            name: "Portfolio Value (USDT)",
+            data: seriesData
+          }],
+          xaxis: {
+            type: 'datetime',
+            labels: { style: { colors: '#aaa' } }
+          },
+          yaxis: {
+            labels: { style: { colors: '#aaa' } }
+          },
+          dataLabels: {
+            enabled: false // Disable data labels for each point
+          },
+          tooltip: {
+            x: { format: 'dd MMM HH:mm' }
+          },
+          annotations: {
+            points: [{
+              x: latestTime,
+              y: latest,
+              marker: {
+                size: 6,
+                fillColor: '#00FF85'
+              },
+                label: {
+                  borderColor: '#00FF85',
+                  style: {
+                    background: '#00FF85',
+                    color: '#000',
+                    fontWeight: 'bold'
+                  },
+                  text: Change: ${pctChange}%,
+                  textAnchor: 'end', // Align right
+                  offsetX: -10       // Shift a bit left to prevent clipping
+                }
+
+            }]
+          },
+          fill: {
+            type: 'gradient',
+            gradient: {
+              shade: 'dark',
+              gradientToColors: ['#00FF85'],
+              shadeIntensity: 1,
+              type: 'vertical',
+              opacityFrom: 0.5,
+              opacityTo: 0.1,
+              stops: [0, 100]
+            }
+          },
+          colors: ['#00FF85'],
+          stroke: {
+            width: 0.5,
+            curve: 'smooth'
+          }
+        };
+
+        document.getElementById('chartContainer').classList.remove('hidden');
+        chartInstance = new ApexCharts(document.querySelector("#chart"), options);
+        chartInstance.render();
+
+        // Calculate and show duration
+        const start = new Date(data[0].timestamp);
+        const end = new Date(data[data.length - 1].timestamp);
+        const diffMs = end - start;
+        const diffMins = Math.floor(diffMs / 60000);
+        const days = Math.floor(diffMins / (60 * 24));
+        const hours = Math.floor((diffMins % (60 * 24)) / 60);
+        const minutes = diffMins % 60;
+        
+        document.getElementById('duration').textContent = 
+          Duration of tracking: ${days} days ${hours} hrs ${minutes} mins;
 
 
+        
+      } catch (error) {
+        console.error("Error fetching portfolio data:", error);
+        alert("Failed to load portfolio data. Please try again.");
+      }
+    }
+
+    document.getElementById('walletForm').addEventListener('submit', (e) => {
+      e.preventDefault();
+      const wallet = document.getElementById('wallet').value.trim();
+      if (wallet) {
+        currentWallet = wallet;
+        fetchAndDraw(wallet);
+        if (refreshInterval) clearInterval(refreshInterval);
+        refreshInterval = setInterval(() => fetchAndDraw(currentWallet), 60000);
+      }
+    });
+  </script>
 </body>
 </html>
