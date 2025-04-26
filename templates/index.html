@@ -16,7 +16,7 @@
   <div class="w-full max-w-4xl space-y-6">
     <!-- Header -->
     <div class="text-center">
-      <h1 class="text-4xl font-extrabold text-green-400 tracking-tight mb-2">📈 ShitBot Portfolio Tracker</h1>
+      <h1 class="text-4xl font-bold text-blue-300 tracking-tight mb-2">📈 Portfolio Tracker</h1>
       <p class="text-zinc-400">Visualize your trading performance with real-time metrics.</p>
     </div>
 
@@ -59,8 +59,6 @@
 	  let pendingWallet = null;
 
 	  window.addEventListener('message', (event) => {
-		console.log("Received message:", event.data);
-
 		if (event.data && event.data.wallet) {
 		  pendingWallet = event.data.wallet.trim();
 		  tryFillWallet();
@@ -72,20 +70,17 @@
 	  });
 
 	  function tryFillWallet() {
-		if (!pendingWallet) {
-		  console.log("No pending wallet to fill yet...");
-		  return;
-		}
+		if (!pendingWallet) return;
 
 		const walletInput = document.getElementById('wallet');
 		const viewButton = document.querySelector('button[type="submit"]');
-		const formSection = walletInput?.closest('form') || walletInput?.parentElement; // Find parent form if possible
+		const formSection = walletInput?.closest('form') || walletInput?.parentElement;
 		const loadingDiv = document.getElementById('loadingProgress');
 
 		if (walletInput && viewButton) {
-		  console.log("✅ Wallet input and View button found. Filling...");
+		  console.log("✅ Wallet input and View button found. Auto-filling...");
 
-		  // Show loading progress
+		  // Show loading
 		  if (loadingDiv) loadingDiv.style.display = "block";
 
 		  walletInput.value = pendingWallet;
@@ -93,22 +88,25 @@
 		  setTimeout(() => {
 			viewButton.click();
 
-			// After clicking, wait a bit and hide form + loading
+			// After clicking, wait a bit and hide input form + loading progress
 			setTimeout(() => {
-			  if (formSection) formSection.style.display = "none";
+			  if (formSection) {
+				formSection.style.opacity = 0;
+				setTimeout(() => {
+				  formSection.style.display = "none"; // Fully hide after fade out
+				}, 500); // 0.5s fade out
+			  }
 			  if (loadingDiv) loadingDiv.style.display = "none";
-			  console.log("🎯 Form hidden, chart should be loading.");
-			}, 1000); // Adjust if needed (depends on your page speed)
+
+			  console.log("🎯 Input form hidden, chart visible.");
+			}, 1500); // wait for chart to start loading
 
 		  }, 300);
 
 		  pendingWallet = null;
-		} else {
-		  console.log("⚠️ Wallet input or View button not found yet.");
 		}
 	  }
 	</script>
-
 
 	  
   <script>
