@@ -41,7 +41,7 @@
     <!-- Chart Section -->
     <div id="chartContainer" class="bg-zinc-800 p-6 rounded-2xl shadow-xl hidden">
       <div id="chart" class="w-full h-80"></div>
-      <div id="duration" class="text-sm text-zinc-400 mt-4 text-center"></div>
+      <p id="durationText" class="text-sm text-zinc-400 mt-4 text-right"></p> <!-- 👈 new duration text -->
     </div>
 
   </div>
@@ -54,8 +54,8 @@
 
     async function fetchAndDraw(wallet) {
       try {
-        const res = await fetch(/api/user/${wallet});
-        if (!res.ok) throw new Error(Failed to fetch data. Status: ${res.status});
+        const res = await fetch(`/api/user/${wallet}`);
+        if (!res.ok) throw new Error(`Failed to fetch data. Status: ${res.status}`);
 
         const json = await res.json();
         const data = json.data;
@@ -113,18 +113,15 @@
                 size: 6,
                 fillColor: '#00FF85'
               },
-                label: {
-                  borderColor: '#00FF85',
-                  style: {
-                    background: '#00FF85',
-                    color: '#000',
-                    fontWeight: 'bold'
-                  },
-                  text: Change: ${pctChange}%,
-                  textAnchor: 'end', // Align right
-                  offsetX: -10       // Shift a bit left to prevent clipping
-                }
-
+              label: {
+                borderColor: '#00FF85',
+                style: {
+                  background: '#00FF85',
+                  color: '#000',
+                  fontWeight: 'bold'
+                },
+                text: `Change: ${pctChange}%`
+              }
             }]
           },
           fill: {
@@ -139,13 +136,7 @@
               stops: [0, 100]
             }
           },
-          colors: ['#00FF85'],
-
-          stroke: {
-            width: 1, // or even try 0.5 for ultra-thin line
-            curve: 'smooth' // optional: keeps the line rounded instead of jagged
-          }
-
+          colors: ['#00FF85']
         };
 
         document.getElementById('chartContainer').classList.remove('hidden');
