@@ -54,18 +54,21 @@
 
 		if (wallet) {
 		  const walletInput = document.getElementById('wallet');
-		  const form = walletInput?.closest('form');
-
 		  if (walletInput) {
-			walletInput.value = wallet;
-		  }
-
-		  if (form) {
-			form.requestSubmit(); // auto-submit the form
+			walletInput.value = wallet.trim();
+			
+			// Now simulate a real button click
+			const viewButton = document.querySelector('button[type="submit"]');
+			if (viewButton) {
+			  setTimeout(() => {  // small delay to ensure DOM ready
+				viewButton.click();
+			  }, 300);  // 300ms delay usually safe
+			}
 		  }
 		}
 	  });
 	</script>
+
 
 
 	  
