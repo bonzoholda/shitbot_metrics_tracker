@@ -41,22 +41,17 @@
     <!-- Chart Section -->
     <div id="chartContainer" class="bg-zinc-800 p-6 rounded-2xl shadow-xl hidden">
       <div id="chart" class="w-full h-80"></div>
-      <div id="duration" class="text-sm text-zinc-400 mt-4 text-center"></div>
     </div>
-
   </div>
 
-  
   <!-- Script -->
   <script>
-    let chartInstance = null;
-    let currentWallet = null;
-    let refreshInterval = null;
+    let chartInstance;
 
     async function fetchAndDraw(wallet) {
       try {
-        const res = await fetch(/api/user/${wallet});
-        if (!res.ok) throw new Error(Failed to fetch data. Status: ${res.status});
+        const res = await fetch(`/api/user/${wallet}`);
+        if (!res.ok) throw new Error(`Failed to fetch data. Status: ${res.status}`);
 
         const json = await res.json();
         const data = json.data;
@@ -68,29 +63,24 @@
         }
 
         const seriesData = data.map(d => ({
-          x: new Date(d.timestamp).getTime(), // Ensure correct timestamp handling
+          x: new Date(d.timestamp),
           y: d.value
         }));
 
-        const latest = data[data.length - 1].value;
-        const baselineValue = baseline;
-        const pctChange = (((latest - baselineValue) / baselineValue) * 100).toFixed(2);
-        const latestTime = new Date(data[data.length - 1].timestamp).getTime();
+        const roi = (((seriesData.at(-1).y - baseline) / baseline) * 100).toFixed(2);
 
-        if (chartInstance) {
-          chartInstance.destroy();
-        }
+        if (chartInstance) chartInstance.destroy();
 
         const options = {
           chart: {
             type: 'area',
             height: 320,
-            background: 'transparent',
             foreColor: '#ccc',
+            background: 'transparent',
             toolbar: { show: false }
           },
           series: [{
-            name: "Portfolio Value (USDT)",
+            name: 'Portfolio Value (USDT)',
             data: seriesData
           }],
           xaxis: {
@@ -100,32 +90,19 @@
           yaxis: {
             labels: { style: { colors: '#aaa' } }
           },
-          dataLabels: {
-            enabled: false // Disable data labels for each point
-          },
           tooltip: {
             x: { format: 'dd MMM HH:mm' }
           },
           annotations: {
             points: [{
-              x: latestTime,
-              y: latest,
-              marker: {
-                size: 6,
-                fillColor: '#00FF85'
-              },
-                label: {
-                  borderColor: '#00FF85',
-                  style: {
-                    background: '#00FF85',
-                    color: '#000',
-                    fontWeight: 'bold'
-                  },
-                  text: Change: ${pctChange}%,
-                  textAnchor: 'end', // Align right
-                  offsetX: -10       // Shift a bit left to prevent clipping
-                }
-
+              x: seriesData.at(-1).x,
+              y: seriesData.at(-1).y,
+              marker: { size: 6, fillColor: '#00FF85' },
+              label: {
+                borderColor: '#00FF85',
+                style: { background: '#00FF85', color: '#000' },
+                text: `ROI: ${roi}%`
+              }
             }]
           },
           fill: {
@@ -140,31 +117,12 @@
               stops: [0, 100]
             }
           },
-          colors: ['#00FF85'],
-          stroke: {
-            width: 0.5,
-            curve: 'smooth'
-          }
+          colors: ['#00FF85']
         };
 
         document.getElementById('chartContainer').classList.remove('hidden');
         chartInstance = new ApexCharts(document.querySelector("#chart"), options);
         chartInstance.render();
-
-        // Calculate and show duration
-        const start = new Date(data[0].timestamp);
-        const end = new Date(data[data.length - 1].timestamp);
-        const diffMs = end - start;
-        const diffMins = Math.floor(diffMs / 60000);
-        const days = Math.floor(diffMins / (60 * 24));
-        const hours = Math.floor((diffMins % (60 * 24)) / 60);
-        const minutes = diffMins % 60;
-        
-        document.getElementById('duration').textContent = 
-          Duration of tracking: ${days} days ${hours} hrs ${minutes} mins;
-
-
-        
       } catch (error) {
         console.error("Error fetching portfolio data:", error);
         alert("Failed to load portfolio data. Please try again.");
@@ -174,12 +132,7 @@
     document.getElementById('walletForm').addEventListener('submit', (e) => {
       e.preventDefault();
       const wallet = document.getElementById('wallet').value.trim();
-      if (wallet) {
-        currentWallet = wallet;
-        fetchAndDraw(wallet);
-        if (refreshInterval) clearInterval(refreshInterval);
-        refreshInterval = setInterval(() => fetchAndDraw(currentWallet), 60000);
-      }
+      if (wallet) fetchAndDraw(wallet);
     });
   </script>
 </body>
