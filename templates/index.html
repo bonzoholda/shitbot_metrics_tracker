@@ -67,7 +67,9 @@
           y: d.value
         }));
 
-        const roi = (((seriesData.at(-1).y - baseline) / baseline) * 100).toFixed(2);
+        const latest = seriesData.at(-1).y;
+        const latestTime = seriesData.at(-1).x;
+        const pctChange = (((latest - baseline) / baseline) * 100).toFixed(2);
 
         if (chartInstance) chartInstance.destroy();
 
@@ -95,13 +97,23 @@
           },
           annotations: {
             points: [{
-              x: seriesData.at(-1).x,
-              y: seriesData.at(-1).y,
-              marker: { size: 6, fillColor: '#00FF85' },
+              x: latestTime,
+              y: latest,
+              marker: {
+                size: 6,
+                fillColor: '#00FF85'
+              },
               label: {
+                text: `Change: ${pctChange}%`,
                 borderColor: '#00FF85',
-                style: { background: '#00FF85', color: '#000' },
-                text: `ROI: ${roi}%`
+                textAnchor: 'end',
+                offsetX: -10,
+                style: {
+                  background: '#00FF85',
+                  color: '#000',
+                  fontWeight: 'bold',
+                  fontSize: '12px'
+                }
               }
             }]
           },
