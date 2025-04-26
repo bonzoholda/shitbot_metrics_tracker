@@ -139,7 +139,13 @@
               stops: [0, 100]
             }
           },
-          colors: ['#00FF85']
+          colors: ['#00FF85'],
+
+          stroke: {
+            width: 1, // or even try 0.5 for ultra-thin line
+            curve: 'smooth' // optional: keeps the line rounded instead of jagged
+          }
+
         };
 
         document.getElementById('chartContainer').classList.remove('hidden');
