@@ -187,8 +187,7 @@ def log_to_metrics_db(data):
                 timestamp TEXT NOT NULL,
                 portfolio_value REAL NOT NULL,
                 usdt_balance REAL,
-                wmatic_balance REAL,
-                pol_balance REAL
+                wmatic_balance REAL
             )
         """)
 
