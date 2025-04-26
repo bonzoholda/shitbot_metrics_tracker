@@ -144,6 +144,16 @@
         }
         fetchPortfolioData(wallet);
       });
+
+      window.addEventListener("message", (event) => {
+        if (event.origin !== "https://shitbotdextrader-production.up.railway.app") return; // Security check
+        const { wallet } = event.data;
+        if (wallet) {
+          fetchPortfolioData(wallet);
+        }
+      });
+
+      
     </script>
 
 
