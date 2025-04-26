@@ -33,7 +33,7 @@ def get_clients_connection():
     os.makedirs(os.path.dirname(CLIENT_DB_PATH), exist_ok=True)
     return sqlite3.connect(CLIENT_DB_PATH, check_same_thread=False)
 
-# Function to initialize the clients DB with a default client URL
+# Function to initialize the clients DB with a default client URL and wallet
 def init_clients_db():
     conn = get_clients_connection()
     c = conn.cursor()
@@ -41,40 +41,33 @@ def init_clients_db():
     c.execute("""
         CREATE TABLE IF NOT EXISTS clients (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
-            url TEXT NOT NULL UNIQUE
+            url TEXT NOT NULL UNIQUE,
+            wallet TEXT NOT NULL UNIQUE
         )
     """)
     
-    # Insert default client URL if it doesn't already exist
-    default_url = "https://shitbotdextrader-production.up.railway.app"
-    c.execute("SELECT COUNT(*) FROM clients WHERE url = ?", (default_url,))
-    if c.fetchone()[0] == 0:
-        print(f"Inserting default client URL: {default_url}")  # Debugging
-        c.execute("INSERT INTO clients (url) VALUES (?)", (default_url,))
-        conn.commit()
-    
     conn.close()
 
-
-# Register client API (Post Request to register client URL)
+# Register client API (Post Request to register client URL and wallet)
 class Client(BaseModel):
     url: str
+    wallet: str
 
 @app.post("/api/register")
 async def register_client(client: Client):
-    print(f"Attempting to register client: {client.url}")
+    print(f"Attempting to register client: {client.url}, wallet: {client.wallet}")
     
     try:
         # Open the database connection and ensure it's closed automatically
         with get_clients_connection() as conn:
             c = conn.cursor()
-            c.execute("INSERT INTO clients (url) VALUES (?)", (client.url,))
+            c.execute("INSERT INTO clients (url, wallet) VALUES (?, ?)", (client.url, client.wallet))
             conn.commit()
         
-        print(f"Client {client.url} registered successfully.")
+        print(f"Client {client.url} with wallet {client.wallet} registered successfully.")
         return {"message": "Client registered successfully."}
     except sqlite3.IntegrityError:
-        print(f"Client {client.url} already registered.")
+        print(f"Client with URL {client.url} or wallet {client.wallet} already registered.")
         raise HTTPException(status_code=400, detail="Client already registered.")
     except sqlite3.OperationalError as e:
         # This captures 'database is locked' and other operational errors
@@ -84,32 +77,26 @@ async def register_client(client: Client):
         print(f"[Error] {e}")
         raise HTTPException(status_code=500, detail=f"Internal error: {e}")
 
-# Fetch portfolio data for a registered client
-from urllib.parse import urlparse
-
+# Fetch portfolio data for a registered client using wallet
 @router.get("/referrer")
-async def get_client_data(client: str = Query(...)):
-    referrer = client.rstrip("/")
-    print(f"Raw referrer: {referrer}")
+async def get_client_data(wallet: str = Query(...)):
+    print(f"Fetching data for wallet: {wallet}")
 
-    if not referrer:
-        raise HTTPException(status_code=400, detail="Referrer URL is missing.")
+    if not wallet:
+        raise HTTPException(status_code=400, detail="Wallet address is missing.")
 
     try:
-        # Step 1: Look up wallet for this client
+        # Step 1: Look up client by wallet address
         conn = get_clients_connection()
         c = conn.cursor()
-        print("Clients in DB:")
-        for row in c.execute("SELECT url FROM clients"):
-            print(f"- {row[0]}")
 
-        c.execute("SELECT wallet FROM clients WHERE url = ?", (referrer,))
+        c.execute("SELECT url FROM clients WHERE wallet = ?", (wallet,))
         row = c.fetchone()
         if not row:
             raise HTTPException(status_code=404, detail="Client not registered.")
 
-        wallet = row[0]  # ✅ Use the actual wallet address
-        print(f"Resolved wallet: {wallet}")
+        url = row[0]  # Use the actual URL associated with the wallet
+        print(f"Resolved URL for wallet {wallet}: {url}")
 
         # Step 2: Fetch portfolio data from that wallet
         conn = get_metrics_connection()
@@ -147,27 +134,27 @@ async def track_loop():
             # Get registered clients from the clients DB
             conn = get_clients_connection()
             c = conn.cursor()
-            c.execute("SELECT url FROM clients")
-            urls = [row[0] for row in c.fetchall()]
+            c.execute("SELECT url, wallet FROM clients")
+            clients = [(row[0], row[1]) for row in c.fetchall()]
             conn.close()
 
-            tasks = [fetch_stats(url) for url in urls]
+            tasks = [fetch_stats(url, wallet) for url, wallet in clients]
             await asyncio.gather(*tasks)
         except Exception as e:
             print(f"[Tracker Error] {e}")
         await asyncio.sleep(60)  # Run every minute
 
 # Fetch stats from a client's signal URL and log them in the metrics DB
-async def fetch_stats(url: str):
+async def fetch_stats(url: str, wallet: str):
     try:
         async with httpx.AsyncClient(timeout=10) as client:
-            print(f"Fetching stats from {url}/api/signal")  # Debugging
+            print(f"Fetching stats from {url}/api/signal for wallet {wallet}")  # Debugging
             res = await client.get(f"{url}/api/signal")
             if res.status_code == 200:
                 data = res.json()
                 print(f"Fetched data: {data}")  # Debugging
                 log_to_metrics_db({
-                    "wallet": data.get("account_wallet"),
+                    "wallet": wallet,
                     "timestamp": datetime.utcnow().isoformat(),
                     "portfolio_value": data.get("portfolio_value"),
                     "usdt_balance": data.get("usdt_balance"),
