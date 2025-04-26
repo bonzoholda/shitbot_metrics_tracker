@@ -215,3 +215,30 @@ async def start_tracking():
     print("Initializing databases...")  # Debugging
     init_clients_db()  # Initialize the clients DB
     asyncio.create_task(track_loop())  # Start the periodic tracking loop
+
+# ✅ New endpoint for main.py to use instead of direct DB access
+@app.get("/api/user/{wallet}")
+async def get_wallet_data(wallet: str):
+    try:
+        conn = get_connection()
+        c = conn.cursor()
+
+        c.execute("SELECT portfolio_value FROM portfolio_log WHERE wallet = ? ORDER BY timestamp ASC LIMIT 1", (wallet,))
+        row = c.fetchone()
+        baseline = row[0] if row else 1
+
+        c.execute("""
+            SELECT timestamp, portfolio_value
+            FROM portfolio_log
+            WHERE wallet = ?
+            ORDER BY timestamp DESC
+            LIMIT 1440
+        """, (wallet,))
+        rows = c.fetchall()
+        conn.close()
+
+        data = [{"timestamp": r[0], "value": r[1]} for r in reversed(rows)]
+        return { "data": data, "baseline": baseline }
+
+    except sqlite3.Error as e:
+        raise HTTPException(status_code=500, detail=f"Database error: {e}")
