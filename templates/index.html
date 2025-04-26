@@ -34,44 +34,44 @@
     </div>
   </div>
 
-  <script>
+    <script>
     let chartInstance = null;
     let refreshInterval = null;
     const TRACKER_API_BASE = "https://tracker-worker.up.railway.app";
-
+  
     function getQueryParam(param) {
       const urlParams = new URLSearchParams(window.location.search);
       return urlParams.get(param);
     }
-
+  
     async function fetchPortfolioData(wallet) {
       try {
         const res = await fetch(`${TRACKER_API_BASE}/api/referrer?wallet=${encodeURIComponent(wallet)}`);
         if (res.status === 404) {
-          document.getElementById('registerBox').classList.remove('hidden');
+          alert("Wallet not registered for tracking.");
           return;
         }
-    
+  
         const json = await res.json();
         const data = json.data;
         const baseline = json.baseline;
-    
+  
         if (!data || data.length === 0) {
           alert("No portfolio data yet. Wait for the next update cycle.");
           return;
         }
-
+  
         const seriesData = data.map(d => ({
           x: new Date(d.timestamp).getTime(),
           y: d.value
         }));
-
+  
         const latest = data[data.length - 1].value;
         const pctChange = (((latest - baseline) / baseline) * 100).toFixed(2);
         const latestTime = new Date(data[data.length - 1].timestamp).getTime();
-
+  
         if (chartInstance) chartInstance.destroy();
-
+  
         chartInstance = new ApexCharts(document.querySelector("#chart"), {
           chart: {
             type: 'area',
@@ -114,10 +114,10 @@
           colors: ['#00FF85'],
           stroke: { width: 0.5, curve: 'smooth' }
         });
-
+  
         document.getElementById('chartContainer').classList.remove('hidden');
         chartInstance.render();
-
+  
         const start = new Date(data[0].timestamp);
         const end = new Date(data[data.length - 1].timestamp);
         const mins = Math.floor((end - start) / 60000);
@@ -126,48 +126,25 @@
         const minutes = mins % 60;
         document.getElementById('duration').textContent =
           `Duration of tracking: ${days} days ${hours} hrs ${minutes} mins`;
-
+  
         if (refreshInterval) clearInterval(refreshInterval);
-        refreshInterval = setInterval(() => fetchPortfolioData(clientUrl), 60000);
-
+        refreshInterval = setInterval(() => fetchPortfolioData(wallet), 60000);
+  
       } catch (err) {
         console.error("Error fetching data:", err);
         alert("Failed to load portfolio data.");
       }
     }
-
-    document.getElementById("registerBtn").addEventListener("click", async () => {
-      const url = document.getElementById("clientUrlInput").value.trim();
-      if (!url) return alert("Please enter a valid URL.");
-
-      const res = await fetch(`${TRACKER_API_BASE}/api/register`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ url })
-      });
-
-      if (res.ok) {
-        document.getElementById('registerBox').classList.add('hidden');
-        fetchPortfolioData(url);
-      } else {
-        const err = await res.json();
-        if (err.detail === "Client already registered.") {
-          document.getElementById('registerBox').classList.add('hidden');
-          fetchPortfolioData(url);
-        } else {
-          alert("Failed to register. Try again later.");
-        }
-      }
-    });
-
+  
     window.addEventListener("DOMContentLoaded", () => {
       const wallet = getQueryParam("wallet");
       if (!wallet) {
-        alert("This tracker requires a 'wallet' parameter in the URL.");
+        alert("This tracker requires a wallet address in the URL as a query parameter, e.g., ?wallet=0x123...");
         return;
       }
       fetchPortfolioData(wallet);
     });
   </script>
+
 </body>
 </html>
