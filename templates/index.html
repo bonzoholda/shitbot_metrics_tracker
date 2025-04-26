@@ -108,6 +108,38 @@
 	  }
 	</script>
 
+	<script>
+	  function sendHeightToParent() {
+		const body = document.body;
+		const html = document.documentElement;
+		const height = Math.max(
+		  body.scrollHeight, body.offsetHeight,
+		  html.clientHeight, html.scrollHeight, html.offsetHeight
+		);
+
+		console.log("Sending iframe height:", height);
+		window.parent.postMessage({ iframeHeight: height }, "*");
+	  }
+
+	  // After wallet input + form hidden, trigger height send
+	  function triggerHeightUpdate() {
+		setTimeout(() => {
+		  sendHeightToParent();
+		}, 500); // wait half second after form hiding
+	  }
+
+	  // Also listen for View clicked manually
+	  const viewButton = document.querySelector('button[type="submit"]');
+	  if (viewButton) {
+		viewButton.addEventListener('click', () => {
+		  setTimeout(() => {
+			sendHeightToParent();
+		  }, 2000); // wait longer if user clicks manually
+		});
+	  }
+	</script>
+
+
 	  
   <script>
     let chartInstance = null;
