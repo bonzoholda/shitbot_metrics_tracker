@@ -35,18 +35,25 @@ def get_clients_connection():
 
 # Function to initialize the clients DB with a default client URL and wallet
 def init_clients_db():
-    conn = get_clients_connection()
-    c = conn.cursor()
-    # Create the clients table if it doesn't exist
-    c.execute("""
-        CREATE TABLE IF NOT EXISTS clients (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            url TEXT NOT NULL UNIQUE,
-            wallet TEXT NOT NULL UNIQUE
-        )
-    """)
-    
-    conn.close()
+    conn = sqlite3.connect(CLIENTS_DB)
+    c = conn.cursor()
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS clients (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            url TEXT NOT NULL,
+            wallet TEXT NOT NULL
+        )
+    ''')
+    # Optional: Insert a default client for testing
+    default_url = "https://shitbotdextrader-production.up.railway.app"
+    default_wallet = "0x5cd16AC5946fb83Bf8F7d3B861D88ed40660811B"
+    # Only insert if it doesn't already exist
+    c.execute('SELECT 1 FROM clients WHERE url = ? AND wallet = ?', (default_url, default_wallet))
+    if not c.fetchone():
+        c.execute('INSERT INTO clients (url, wallet) VALUES (?, ?)', (default_url, default_wallet))
+        print(f"Default client registered: {default_wallet} at {default_url}")
+    conn.commit()
+    conn.close()
 
 # Register client API (Post Request to register client URL and wallet)
 class Client(BaseModel):
