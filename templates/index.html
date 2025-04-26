@@ -48,23 +48,35 @@
 
   <!-- Script -->
 	<script>
+	  let pendingWallet = null;
+
 	  window.addEventListener('message', (event) => {
 		if (event.data && event.data.wallet) {
-		  const walletInput = document.getElementById('wallet');
-		  if (walletInput) {
-			walletInput.value = event.data.wallet.trim();
-			
-			// Then simulate View Button Click
-			const viewButton = document.querySelector('button[type="submit"]');
-			if (viewButton) {
-			  setTimeout(() => {
-				viewButton.click();
-			  }, 300); // small delay
-			}
-		  }
+		  pendingWallet = event.data.wallet.trim();
+		  tryFillWallet();
 		}
 	  });
+
+	  document.addEventListener('DOMContentLoaded', () => {
+		tryFillWallet();
+	  });
+
+	  function tryFillWallet() {
+		if (!pendingWallet) return;
+
+		const walletInput = document.getElementById('wallet');
+		const viewButton = document.querySelector('button[type="submit"]');
+
+		if (walletInput && viewButton) {
+		  walletInput.value = pendingWallet;
+		  setTimeout(() => {
+			viewButton.click();
+		  }, 300);
+		  pendingWallet = null; // prevent double filling
+		}
+	  }
 	</script>
+
 
 
 	  
