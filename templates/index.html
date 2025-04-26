@@ -47,25 +47,26 @@
   </div>
 
   <!-- Script -->
-  <script>
-	  window.addEventListener("DOMContentLoaded", () => {
-		const params = new URLSearchParams(window.location.search);
-		const wallet = params.get('wallet');
+	<script>
+	  window.addEventListener('DOMContentLoaded', () => {
+		const urlParams = new URLSearchParams(window.location.search);
+		const wallet = urlParams.get('wallet');
 
 		if (wallet) {
-		  const walletInput = document.getElementById('wallet'); // your wallet input field
-		  const form = walletInput?.closest('form'); // find the nearest form around the wallet input
+		  const walletInput = document.getElementById('wallet');
+		  const form = walletInput?.closest('form');
 
 		  if (walletInput) {
 			walletInput.value = wallet;
 		  }
 
 		  if (form) {
-			form.requestSubmit(); // auto-submit the form to simulate clicking the View button
+			form.requestSubmit(); // auto-submit the form
 		  }
 		}
 	  });
 	</script>
+
 
 	  
   <script>
