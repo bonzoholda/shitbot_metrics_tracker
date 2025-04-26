@@ -20,6 +20,14 @@
       <p class="text-zinc-400">Visualize your trading performance with real-time metrics.</p>
     </div>
 
+	<div id="loadingProgress" style="display: none; text-align: center; margin-top: 20px;">
+	  <div class="w-1/2 mx-auto bg-gray-300 rounded-full h-4 overflow-hidden">
+		<div id="loadingBar" class="bg-green-500 h-4 animate-pulse" style="width: 100%;"></div>
+	  </div>
+	  <p class="text-gray-600 mt-2">Loading your portfolio...</p>
+	</div>
+
+
     <!-- Wallet Form -->
     <form id="walletForm" class="bg-zinc-800 p-6 rounded-2xl shadow-lg space-y-4">
       <label for="wallet" class="block text-left text-sm font-medium text-zinc-300">Wallet Address</label>
@@ -51,6 +59,8 @@
 	  let pendingWallet = null;
 
 	  window.addEventListener('message', (event) => {
+		console.log("Received message:", event.data);
+
 		if (event.data && event.data.wallet) {
 		  pendingWallet = event.data.wallet.trim();
 		  tryFillWallet();
@@ -62,21 +72,42 @@
 	  });
 
 	  function tryFillWallet() {
-		if (!pendingWallet) return;
+		if (!pendingWallet) {
+		  console.log("No pending wallet to fill yet...");
+		  return;
+		}
 
 		const walletInput = document.getElementById('wallet');
 		const viewButton = document.querySelector('button[type="submit"]');
+		const formSection = walletInput?.closest('form') || walletInput?.parentElement; // Find parent form if possible
+		const loadingDiv = document.getElementById('loadingProgress');
 
 		if (walletInput && viewButton) {
+		  console.log("✅ Wallet input and View button found. Filling...");
+
+		  // Show loading progress
+		  if (loadingDiv) loadingDiv.style.display = "block";
+
 		  walletInput.value = pendingWallet;
+
 		  setTimeout(() => {
 			viewButton.click();
+
+			// After clicking, wait a bit and hide form + loading
+			setTimeout(() => {
+			  if (formSection) formSection.style.display = "none";
+			  if (loadingDiv) loadingDiv.style.display = "none";
+			  console.log("🎯 Form hidden, chart should be loading.");
+			}, 1000); // Adjust if needed (depends on your page speed)
+
 		  }, 300);
-		  pendingWallet = null; // prevent double filling
+
+		  pendingWallet = null;
+		} else {
+		  console.log("⚠️ Wallet input or View button not found yet.");
 		}
 	  }
 	</script>
-
 
 
 	  
