@@ -219,7 +219,7 @@ async def start_tracking():
 @app.get("/api/user/{wallet}")
 async def get_wallet_data(wallet: str):
     try:
-        conn = get_connection()
+        conn = get_metrics_connection()
         c = conn.cursor()
 
         c.execute("SELECT portfolio_value FROM portfolio_log WHERE wallet = ? ORDER BY timestamp ASC LIMIT 1", (wallet,))
