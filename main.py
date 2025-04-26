@@ -25,7 +25,7 @@ def home(request: Request):
 async def get_user_data(wallet: str):
     try:
         async with httpx.AsyncClient(timeout=10) as client:
-            res = await client.get(f"{TRACKER_API_URL}/api/referrer", params={"wallet": wallet})
+            res = await client.get(f"{TRACKER_API_URL}/api/user/{wallet}")
             if res.status_code == 200:
                 return res.json()
             else:
