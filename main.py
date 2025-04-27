@@ -139,6 +139,6 @@ async def options_register_client():
 
 # Initialize database when app starts
 @app.on_event("startup")
-async def start_tracking():
+async def get_clients_connection():
     print("Initializing databases...")  # Debugging
     init_clients_db()  # Initialize the clients DB
