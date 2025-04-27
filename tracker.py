@@ -12,16 +12,17 @@ DB_PATH = os.getenv("DATABASE_PATH", "/data/metrics.db")  # Original metrics DB
 CLIENT_DB_PATH = os.getenv("CLIENT_DATABASE_PATH", "/data/clients.db")  # New clients DB
 
 app = FastAPI()
-router = APIRouter()
 
-# Allow specific origins for CORS
+# ✅ CORS middleware added immediately after app init
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Frontend URL
+    allow_origins=["*"],  # (or your exact dashboard URL later)
     allow_credentials=True,
-    allow_methods=["*"],  # Allows all methods (GET, POST, etc.)
-    allow_headers=["*"],  # Allows all headers
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
+
+router = APIRouter()
 
 # Function to get a connection for the metrics DB (portfolio_log)
 def get_metrics_connection():
