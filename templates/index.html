@@ -6,11 +6,54 @@
   <title>ShitBot Tracker</title>
   <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
   <script src="https://cdn.tailwindcss.com"></script>
-  <style>
+<style>
     body {
-      font-family: 'Inter', sans-serif;
+        font-family: 'Exo 2', sans-serif;
+        font-weight: 300;
+        background-color: #0d0d0d;
+        color: #e0e0e0;
+        letter-spacing: 0.5px;
+        margin: 0;
+        padding: 0;
     }
-  </style>
+
+    h1, h2, h3 {
+        font-weight: 500;
+        color: #00f0ff;
+        text-transform: uppercase;
+    }
+
+    .card {
+        background-color: #1a1a1a;
+        border: 1px solid #00f0ff;
+        border-radius: 12px;
+        padding: 20px;
+        margin: 20px;
+        box-shadow: 0 0 10px rgba(0, 240, 255, 0.2);
+    }
+
+    a, button {
+        background-color: #00f0ff;
+        color: #0d0d0d;
+        border: none;
+        padding: 10px 20px;
+        border-radius: 8px;
+        cursor: pointer;
+        transition: background-color 0.3s;
+        text-transform: uppercase;
+        font-weight: 500;
+    }
+
+    a:hover, button:hover {
+        background-color: #00d2ff;
+    }
+
+    .secondary-text {
+        color: #888888;
+        font-size: 0.9em;
+    }
+</style>
+
 </head>
 <body class="bg-zinc-900 text-white min-h-screen flex items-center justify-center px-4 py-8">
   <div class="w-full max-w-4xl space-y-6">
