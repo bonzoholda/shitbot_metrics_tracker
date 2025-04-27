@@ -4,6 +4,8 @@ from fastapi.templating import Jinja2Templates
 import httpx
 import os
 import logging
+from fastapi.middleware.cors import CORSMiddleware
+import sqlite3
 
 from tracker import router as tracker_router  # ✅ Import the router now
 
