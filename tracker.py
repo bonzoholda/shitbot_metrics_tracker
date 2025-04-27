@@ -260,3 +260,7 @@ async def get_wallet_data(wallet: str):
 
     except sqlite3.Error as e:
         raise HTTPException(status_code=500, detail=f"Database error: {e}")
+
+@app.get("/test-cors")
+async def test_cors():
+    return {"message": "CORS is working!"}
