@@ -76,31 +76,31 @@ async def register_client(request: Request):
     data = await request.json()
     wallet = data.get("wallet")
     url = data.get("url")
-
-    print(f"Received registration request: wallet={wallet}, url={url}")
-
     if not wallet or not url:
-        return {"status": "error", "message": "Missing wallet or url"}
+        return {"success": False, "message": "Wallet or URL missing"}
 
-    conn = get_clients_connection()
-    c = conn.cursor()
+    conn = sqlite3.connect('clients.db')
+    cursor = conn.cursor()
 
-    # Check if client already exists
-    c.execute("SELECT * FROM clients WHERE url = ? AND wallet = ?", (url, wallet))
-    existing = c.fetchone()
-
-    if existing:
+    # Create table if not exists
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS clients (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            wallet TEXT UNIQUE,
+            url TEXT
+        )
+    """)
+    
+    # Insert or ignore if already exists
+    try:
+        cursor.execute("INSERT OR IGNORE INTO clients (wallet, url) VALUES (?, ?)", (wallet, url))
+        conn.commit()
+    except Exception as e:
         conn.close()
-        print(f"Client already exists: {wallet} at {url}")
-        return {"status": "exists", "message": "Client already registered"}
-
-    # If not exists, insert new client
-    c.execute("INSERT INTO clients (url, wallet) VALUES (?, ?)", (url, wallet))
-    conn.commit()
+        return {"success": False, "message": str(e)}
     conn.close()
+    return {"success": True, "message": "Client registered"}
 
-    print(f"Client registered successfully: {wallet} at {url}")
-    return {"status": "success", "message": "Client registered"}
 
 
 # Fetch portfolio data for a registered client using wallet
