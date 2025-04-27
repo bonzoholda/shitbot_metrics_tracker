@@ -230,8 +230,8 @@ def log_to_metrics_db(data):
 # Initialize database when app starts
 @app.on_event("startup")
 async def start_tracking():
-    print("Initializing databases...")  # Debugging
-    init_clients_db()  # Initialize the clients DB
+#    print("Initializing databases...")  # Debugging
+#    init_clients_db()  # Initialize the clients DB
     asyncio.create_task(track_loop())  # Start the periodic tracking loop
 
 # ✅ New endpoint for main.py to use instead of direct DB access
