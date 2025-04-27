@@ -12,6 +12,10 @@ import logging
 from tracker import router as tracker_router  # ✅ Import the router now
 from fastapi.responses import JSONResponse
 
+# Paths and DB initialization
+DB_PATH = os.getenv("DATABASE_PATH", "/data/metrics.db")  # Original metrics DB
+CLIENT_DB_PATH = os.getenv("CLIENT_DATABASE_PATH", "/data/clients.db")  # New clients DB
+
 app = FastAPI()
 
 # ✅ CORS middleware added immediately after app init
@@ -32,8 +36,6 @@ TRACKER_API_URL = os.getenv("TRACKER_API_URL", "https://tracker-worker.up.railwa
 
 logger = logging.getLogger(__name__)
 
-
-CLIENT_DB_PATH = os.getenv("CLIENT_DATABASE_PATH", "/data/clients.db")  # New clients DB
 
 # Function to get a connection for the clients DB
 def get_clients_connection():
@@ -71,19 +73,32 @@ class Client(BaseModel):
 def home(request: Request):
     return templates.TemplateResponse("index.html", {"request": request})
 
+# ✅ New endpoint for main.py to use instead of direct DB access
 @app.get("/api/user/{wallet}")
-async def get_user_data(wallet: str):
+async def get_wallet_data(wallet: str):
     try:
-        async with httpx.AsyncClient(timeout=10) as client:
-            res = await client.get(f"{TRACKER_API_URL}/api/user/{wallet}")
-            if res.status_code == 200:
-                return res.json()
-            else:
-                logger.error(f"[Tracker API] Error {res.status_code}: {res.text}")
-                raise HTTPException(status_code=502, detail="Tracker service error.")
-    except httpx.RequestError as e:
-        logger.error(f"[Tracker API] Request failed for wallet {wallet}: {e}")
-        raise HTTPException(status_code=503, detail="Unable to connect to tracker service.")
+        conn = get_metrics_connection()
+        c = conn.cursor()
+
+        c.execute("SELECT portfolio_value FROM portfolio_log WHERE wallet = ? ORDER BY timestamp ASC LIMIT 1", (wallet,))
+        row = c.fetchone()
+        baseline = row[0] if row else 1
+
+        c.execute("""
+            SELECT timestamp, portfolio_value
+            FROM portfolio_log
+            WHERE wallet = ?
+            ORDER BY timestamp DESC
+            LIMIT 1440
+        """, (wallet,))
+        rows = c.fetchall()
+        conn.close()
+
+        data = [{"timestamp": r[0], "value": r[1]} for r in reversed(rows)]
+        return { "data": data, "baseline": baseline }
+
+    except sqlite3.Error as e:
+        raise HTTPException(status_code=500, detail=f"Database error: {e}")
 
 @app.get("/api/check_client")
 async def check_client(wallet: str):
