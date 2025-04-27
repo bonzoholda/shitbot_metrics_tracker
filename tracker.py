@@ -17,7 +17,7 @@ router = APIRouter()
 # Allow specific origins for CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["https://shitbotmetricstracker-production.up.railway.app"],  # Frontend URL
+    allow_origins=["*"],  # Frontend URL
     allow_credentials=True,
     allow_methods=["*"],  # Allows all methods (GET, POST, etc.)
     allow_headers=["*"],  # Allows all headers
