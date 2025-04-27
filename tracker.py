@@ -63,7 +63,7 @@ class Client(BaseModel):
 
 @app.get("/api/check_client")
 async def check_client(wallet: str):
-    conn = sqlite3.connect('clients.db')
+    conn = get_clients_connection()
     cursor = conn.cursor()
     cursor.execute("SELECT 1 FROM clients WHERE wallet = ?", (wallet,))
     exists = cursor.fetchone() is not None
@@ -82,7 +82,7 @@ async def register_client(request: Request):
     if not wallet or not url:
         return {"status": "error", "message": "Missing wallet or url"}
 
-    conn = sqlite3.connect("clients.db")
+    conn = get_clients_connection()
     c = conn.cursor()
 
     # Check if client already exists
