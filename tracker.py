@@ -79,7 +79,7 @@ async def register_client(request: Request):
     if not wallet or not url:
         return {"success": False, "message": "Wallet or URL missing"}
 
-    conn = sqlite3.connect('clients.db')
+    conn = get_clients_connection()
     cursor = conn.cursor()
 
     # Create table if not exists
@@ -100,6 +100,7 @@ async def register_client(request: Request):
         return {"success": False, "message": str(e)}
     conn.close()
     return {"success": True, "message": "Client registered"}
+
 
 
 
