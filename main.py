@@ -8,6 +8,16 @@ import logging
 from tracker import router as tracker_router  # ✅ Import the router now
 
 app = FastAPI()
+
+# ✅ CORS middleware added immediately after app init
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # (or your exact dashboard URL later)
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 templates = Jinja2Templates(directory="templates")
 
 # ✅ Include /api routes from tracker.py
