@@ -6,6 +6,7 @@ import os
 import logging
 from fastapi.middleware.cors import CORSMiddleware
 import sqlite3
+from pydantic import BaseModel
 
 from tracker import router as tracker_router  # ✅ Import the router now
 
@@ -29,6 +30,41 @@ TRACKER_API_URL = os.getenv("TRACKER_API_URL", "https://tracker-worker.up.railwa
 
 logger = logging.getLogger(__name__)
 
+
+CLIENT_DB_PATH = os.getenv("CLIENT_DATABASE_PATH", "/data/clients.db")  # New clients DB
+
+# Function to get a connection for the clients DB
+def get_clients_connection():
+    os.makedirs(os.path.dirname(CLIENT_DB_PATH), exist_ok=True)
+    return sqlite3.connect(CLIENT_DB_PATH, check_same_thread=False)
+
+# Function to initialize the clients DB with a default client URL and wallet
+def init_clients_db():
+    conn = get_clients_connection()
+    c = conn.cursor()
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS clients (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            url TEXT NOT NULL,
+            wallet TEXT NOT NULL
+        )
+    ''')
+    # Optional: Insert a default client for testing
+    default_url = "https://shitbotdextrader-production.up.railway.app"
+    default_wallet = "0x5cd16AC5946fb83Bf8F7d3B861D88ed40660811B"
+    # Only insert if it doesn't already exist
+    c.execute('SELECT 1 FROM clients WHERE url = ? AND wallet = ?', (default_url, default_wallet))
+    if not c.fetchone():
+        c.execute('INSERT INTO clients (url, wallet) VALUES (?, ?)', (default_url, default_wallet))
+        print(f"Default client registered: {default_wallet} at {default_url}")
+    conn.commit()
+    conn.close()
+
+# Register client API (Post Request to register client URL and wallet)
+class Client(BaseModel):
+    url: str
+    wallet: str
+
 @app.get("/", response_class=HTMLResponse)
 def home(request: Request):
     return templates.TemplateResponse("index.html", {"request": request})
@@ -46,3 +82,44 @@ async def get_user_data(wallet: str):
     except httpx.RequestError as e:
         logger.error(f"[Tracker API] Request failed for wallet {wallet}: {e}")
         raise HTTPException(status_code=503, detail="Unable to connect to tracker service.")
+
+@app.get("/api/check_client")
+async def check_client(wallet: str):
+    conn = sqlite3.connect('clients.db')
+    cursor = conn.cursor()
+    cursor.execute("SELECT 1 FROM clients WHERE wallet = ?", (wallet,))
+    exists = cursor.fetchone() is not None
+    conn.close()
+    return {"exists": exists}
+
+
+@app.post("/api/register_client")
+async def register_client(request: Request):
+    data = await request.json()
+    wallet = data.get("wallet")
+    url = data.get("url")
+
+    print(f"Received registration request: wallet={wallet}, url={url}")
+
+    if not wallet or not url:
+        return {"status": "error", "message": "Missing wallet or url"}
+
+    conn = sqlite3.connect("clients.db")
+    c = conn.cursor()
+
+    # Check if client already exists
+    c.execute("SELECT * FROM clients WHERE url = ? AND wallet = ?", (url, wallet))
+    existing = c.fetchone()
+
+    if existing:
+        conn.close()
+        print(f"Client already exists: {wallet} at {url}")
+        return {"status": "exists", "message": "Client already registered"}
+
+    # If not exists, insert new client
+    c.execute("INSERT INTO clients (url, wallet) VALUES (?, ?)", (url, wallet))
+    conn.commit()
+    conn.close()
+
+    print(f"Client registered successfully: {wallet} at {url}")
+    return {"status": "success", "message": "Client registered"}
