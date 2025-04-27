@@ -60,29 +60,42 @@ class Client(BaseModel):
     url: str
     wallet: str
 
-@app.post("/api/register")
-async def register_client(client: Client):
-    print(f"Attempting to register client: {client.url}, wallet: {client.wallet}")
+@app.get("/api/check_client")
+async def check_client(wallet: str):
+    conn = sqlite3.connect('clients.db')
+    cursor = conn.cursor()
+    cursor.execute("SELECT 1 FROM clients WHERE wallet = ?", (wallet,))
+    exists = cursor.fetchone() is not None
+    conn.close()
+    return {"exists": exists}
+
+
+@app.post("/api/register_client")
+async def register_client(request: Request):
+    data = await request.json()
+    wallet = data.get("wallet")
+    url = data.get("url")
+
+    if not wallet or not url:
+        return {"status": "error", "message": "Missing wallet or url"}
+
+    conn = sqlite3.connect("clients.db")
+    c = conn.cursor()
     
-    try:
-        # Open the database connection and ensure it's closed automatically
-        with get_clients_connection() as conn:
-            c = conn.cursor()
-            c.execute("INSERT INTO clients (url, wallet) VALUES (?, ?)", (client.url, client.wallet))
-            conn.commit()
-        
-        print(f"Client {client.url} with wallet {client.wallet} registered successfully.")
-        return {"message": "Client registered successfully."}
-    except sqlite3.IntegrityError:
-        print(f"Client with URL {client.url} or wallet {client.wallet} already registered.")
-        raise HTTPException(status_code=400, detail="Client already registered.")
-    except sqlite3.OperationalError as e:
-        # This captures 'database is locked' and other operational errors
-        print(f"[Error] SQLite operational error: {e}")
-        raise HTTPException(status_code=500, detail="Database is locked, please try again.")
-    except Exception as e:
-        print(f"[Error] {e}")
-        raise HTTPException(status_code=500, detail=f"Internal error: {e}")
+    # Check if client already exists
+    c.execute("SELECT * FROM clients WHERE url = ? AND wallet = ?", (url, wallet))
+    existing = c.fetchone()
+
+    if existing:
+        conn.close()
+        return {"status": "exists", "message": "Client already registered"}
+
+    # If not exists, insert new client
+    c.execute("INSERT INTO clients (url, wallet) VALUES (?, ?)", (url, wallet))
+    conn.commit()
+    conn.close()
+
+    return {"status": "success", "message": "Client registered"}
 
 # Fetch portfolio data for a registered client using wallet
 @router.get("/referrer")
