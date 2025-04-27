@@ -10,6 +10,7 @@ from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
 import logging
 from tracker import router as tracker_router  # ✅ Import the router now
+from fastapi.responses import JSONResponse
 
 app = FastAPI()
 
@@ -124,6 +125,17 @@ async def register_client(request: Request):
 
     print(f"Client registered successfully: {wallet} at {url}")
     return {"status": "success", "message": "Client registered"}
+
+
+
+@app.options("/api/register_client")
+async def options_register_client():
+    response = JSONResponse(content={"message": "CORS preflight OK"})
+    response.headers["Access-Control-Allow-Origin"] = "*"
+    response.headers["Access-Control-Allow-Methods"] = "POST, OPTIONS"
+    response.headers["Access-Control-Allow-Headers"] = "*"
+    return response
+
 
 # Initialize database when app starts
 @app.on_event("startup")
