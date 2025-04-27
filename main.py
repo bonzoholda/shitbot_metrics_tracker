@@ -124,3 +124,9 @@ async def register_client(request: Request):
 
     print(f"Client registered successfully: {wallet} at {url}")
     return {"status": "success", "message": "Client registered"}
+
+# Initialize database when app starts
+@app.on_event("startup")
+async def start_tracking():
+    print("Initializing databases...")  # Debugging
+    init_clients_db()  # Initialize the clients DB
