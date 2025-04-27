@@ -25,12 +25,12 @@ app.add_middleware(
 router = APIRouter()
 
 # Function to get a connection for the metrics DB (portfolio_log)
-async def get_metrics_connection():
+def get_metrics_connection():
     os.makedirs(os.path.dirname(DB_PATH), exist_ok=True)
     return sqlite3.connect(DB_PATH)
 
 # Function to get a connection for the clients DB
-async def get_clients_connection():
+def get_clients_connection():
     os.makedirs(os.path.dirname(CLIENT_DB_PATH), exist_ok=True)
     return sqlite3.connect(CLIENT_DB_PATH, check_same_thread=False)
 
@@ -230,8 +230,8 @@ def log_to_metrics_db(data):
 # Initialize database when app starts
 @app.on_event("startup")
 async def start_tracking():
-#    print("Initializing databases...")  # Debugging
-#    init_clients_db()  # Initialize the clients DB
+    print("Initializing databases...")  # Debugging
+    init_clients_db()  # Initialize the clients DB
     asyncio.create_task(track_loop())  # Start the periodic tracking loop
 
 # ✅ New endpoint for main.py to use instead of direct DB access
