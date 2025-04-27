@@ -76,18 +76,21 @@ async def register_client(request: Request):
     wallet = data.get("wallet")
     url = data.get("url")
 
+    print(f"Received registration request: wallet={wallet}, url={url}")
+
     if not wallet or not url:
         return {"status": "error", "message": "Missing wallet or url"}
 
     conn = sqlite3.connect("clients.db")
     c = conn.cursor()
-    
+
     # Check if client already exists
     c.execute("SELECT * FROM clients WHERE url = ? AND wallet = ?", (url, wallet))
     existing = c.fetchone()
 
     if existing:
         conn.close()
+        print(f"Client already exists: {wallet} at {url}")
         return {"status": "exists", "message": "Client already registered"}
 
     # If not exists, insert new client
@@ -95,7 +98,9 @@ async def register_client(request: Request):
     conn.commit()
     conn.close()
 
+    print(f"Client registered successfully: {wallet} at {url}")
     return {"status": "success", "message": "Client registered"}
+
 
 # Fetch portfolio data for a registered client using wallet
 @router.get("/referrer")
