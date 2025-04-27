@@ -25,12 +25,12 @@ app.add_middleware(
 router = APIRouter()
 
 # Function to get a connection for the metrics DB (portfolio_log)
-def get_metrics_connection():
+async def get_metrics_connection():
     os.makedirs(os.path.dirname(DB_PATH), exist_ok=True)
     return sqlite3.connect(DB_PATH)
 
 # Function to get a connection for the clients DB
-def get_clients_connection():
+async def get_clients_connection():
     os.makedirs(os.path.dirname(CLIENT_DB_PATH), exist_ok=True)
     return sqlite3.connect(CLIENT_DB_PATH, check_same_thread=False)
 
