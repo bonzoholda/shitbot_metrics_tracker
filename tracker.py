@@ -24,6 +24,8 @@ app.add_middleware(
 
 router = APIRouter()
 
+insert_counter = 0
+
 # Function to get a connection for the metrics DB (portfolio_log)
 def get_metrics_connection():
     os.makedirs(os.path.dirname(DB_PATH), exist_ok=True)
@@ -55,6 +57,40 @@ def init_clients_db():
         print(f"Default client registered: {default_wallet} at {default_url}")
     conn.commit()
     conn.close()
+
+def insert_new_log(wallet_address, portfolio_value):
+    global insert_counter
+    conn = sqlite3.connect('metrics.db')
+    cursor = conn.cursor()
+    cursor.execute('''
+        INSERT INTO portfolio_log (wallet_address, portfolio_value, timestamp)
+        VALUES (?, ?, strftime('%s','now'))
+    ''', (wallet_address, portfolio_value))
+    conn.commit()
+    conn.close()
+    # Increase insert counter
+    insert_counter += 1
+    # Run cleanup every 50 inserts
+    if insert_counter >= 50:
+        cleanup_old_logs(wallet_address)
+        insert_counter = 0  # reset counter
+
+def cleanup_old_logs(wallet_address):
+    conn = sqlite3.connect('metrics.db')
+    cursor = conn.cursor()
+    cursor.execute('''
+        DELETE FROM portfolio_log
+        WHERE id NOT IN (
+            SELECT id FROM portfolio_log
+            WHERE wallet_address = ?
+            ORDER BY timestamp DESC
+            LIMIT 1440
+        )
+        AND wallet_address = ?;
+    ''', (wallet_address, wallet_address))
+    conn.commit()
+    conn.close()
+
 
 # Register client API (Post Request to register client URL and wallet)
 class Client(BaseModel):
