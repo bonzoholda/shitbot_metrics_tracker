@@ -60,7 +60,7 @@ def init_clients_db():
 
 def insert_new_log(wallet_address, portfolio_value):
     global insert_counter
-    conn = sqlite3.connect('metrics.db')
+    conn = get_metrics_connection()
     cursor = conn.cursor()
     cursor.execute('''
         INSERT INTO portfolio_log (wallet_address, portfolio_value, timestamp)
@@ -76,7 +76,7 @@ def insert_new_log(wallet_address, portfolio_value):
         insert_counter = 0  # reset counter
 
 def cleanup_old_logs(wallet_address):
-    conn = sqlite3.connect('metrics.db')
+    conn = get_metrics_connection()
     cursor = conn.cursor()
     cursor.execute('''
         DELETE FROM portfolio_log
